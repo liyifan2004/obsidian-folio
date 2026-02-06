@@ -1,6 +1,6 @@
-import { App, PluginSettingTab, Setting } from 'obsidian';
+import { App, PluginSettingTab, Setting, SliderComponent } from 'obsidian';
 import DualPaneSyncPlugin from '../main';
-import { t } from './i18n';
+import { t } from './types';
 
 export class DualPaneSettingTab extends PluginSettingTab {
 	plugin: DualPaneSyncPlugin;
@@ -14,99 +14,131 @@ export class DualPaneSettingTab extends PluginSettingTab {
 		const { containerEl } = this;
 		containerEl.empty();
 
-		// 标题
-		containerEl.createEl('h2', { text: t('settingTitle') });
+		// ========== 标题 ==========
+		containerEl.createEl('h2', { text: t('ribbonTooltip') });
 
-		// ==================== 重合行数设置（最前面）====================
-		containerEl.createEl('h3', { 
-			text: t('settingOverlapTitle'), 
-			cls: 'setting-item-heading' 
-		});
-
+		// ========== 重叠行数设置 ==========
 		new Setting(containerEl)
-			.setName(t('settingOverlapName'))
+			.setName(t('settingOverlap'))
 			.setDesc(t('settingOverlapDesc'))
-			.addSlider(slider => slider
-				.setLimits(0, 10, 1)
-				.setValue(this.plugin.settings.overlapLines)
-				.setDynamicTooltip()
-				.onChange(async (value) => {
-					this.plugin.settings.overlapLines = value;
-					await this.plugin.saveSettings();
-				})
-			);
+			.addSlider((slider: SliderComponent) => {
+				slider
+					.setLimits(0, 10, 1)
+					.setValue(this.plugin.settings.overlapLines)
+					.setDynamicTooltip()
+					.onChange(async (value) => {
+						this.plugin.settings.overlapLines = value;
+						await this.plugin.saveSettings();
+					});
+			});
 
-		// ==================== 快捷键设置说明（紧跟后面）====================
-		containerEl.createEl('h3', { 
-			text: t('settingHotkeyTitle'), 
-			cls: 'setting-item-heading' 
-		});
+		// ========== 快捷键设置说明 ==========
+		new Setting(containerEl)
+			.setName(t('settingHotkeys'))
+			.setDesc(t('settingHotkeysDesc'))
+			.setHeading();
 
-		// 快捷键说明卡片
-		const hotkeyCard = containerEl.createEl('div', {
-			cls: 'dual-pane-card',
-			attr: { 
-				style: 'background: var(--background-secondary); padding: 16px; border-radius: 8px; margin: 12px 0 20px 0; border: 1px solid var(--background-modifier-border);'
-			}
-		});
+		// ========== 命令列表 ==========
+		const commandsContainer = containerEl.createDiv('dual-pane-commands');
 		
-		const hotkeySteps = hotkeyCard.createEl('div', { cls: 'setting-item-description' });
-		hotkeySteps.innerHTML = `
-			<p style="margin: 0 0 12px 0; color: var(--text-normal);">${t('settingHotkeyDesc')}</p>
-			<p style="margin: 8px 0 0 0; color: var(--text-accent); font-size: 0.9em;">💡 ${t('settingHotkeyRecommend')}</p>
-		`;
-
-		// ==================== 功能说明 ====================
-		containerEl.createEl('h3', { 
-			text: t('settingFeatureTitle'), 
-			cls: 'setting-item-heading' 
-		});
-
-		const featureList = containerEl.createEl('div', {
-			cls: 'dual-pane-features',
-			attr: { style: 'margin: 12px 0 20px 0;' }
-		});
-
-		const features = [
-			{ icon: '📄', text: t('featureLeft') },
-			{ icon: '📄', text: t('featureRight') },
-			{ icon: '↔️', text: t('featureScroll') },
-			{ icon: '🔄', text: t('featureAdaptive') },
+		const commands = [
+			{ name: t('cmdToggle'), icon: 'columns' },
+			{ name: t('cmdToggleTriple'), icon: 'layout-grid' },
+			{ name: t('cmdStop'), icon: 'square' },
+			{ name: t('cmdPageUp'), icon: 'arrow-up' },
+			{ name: t('cmdPageDown'), icon: 'arrow-down' },
+			{ name: t('cmdDoublePageUp'), icon: 'chevrons-up' },
+			{ name: t('cmdDoublePageDown'), icon: 'chevrons-down' }
 		];
 
-		features.forEach(feature => {
-			const item = featureList.createEl('div', {
-				attr: { style: 'display: flex; align-items: flex-start; margin: 8px 0; padding: 8px; background: var(--background-primary-alt); border-radius: 6px;' }
-			});
-			item.createEl('span', { text: feature.icon, attr: { style: 'margin-right: 10px; font-size: 1.2em;' } });
-			item.createEl('span', { text: feature.text, attr: { style: 'color: var(--text-normal); line-height: 1.5;' } });
+		for (const cmd of commands) {
+			const cmdEl = commandsContainer.createDiv('setting-item');
+			cmdEl.style.padding = '6px 0';
+			cmdEl.style.borderBottom = 'none';
+			
+			const iconEl = cmdEl.createSpan('setting-item-icon');
+			iconEl.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#${cmd.icon}"></use></svg>`;
+			
+			const nameEl = cmdEl.createSpan('setting-item-name');
+			nameEl.style.marginLeft = '8px';
+			nameEl.textContent = cmd.name;
+		}
+
+		// ========== 功能说明 ==========
+		const featureContainer = containerEl.createDiv('dual-pane-features');
+		featureContainer.style.marginTop = '24px';
+
+		featureContainer.createEl('h3', { text: t('docs') });
+
+		// 双栏模式说明
+		const dualPaneFeature = featureContainer.createDiv('feature-item');
+		dualPaneFeature.style.marginBottom = '16px';
+		dualPaneFeature.style.padding = '12px';
+		dualPaneFeature.style.backgroundColor = 'var(--background-modifier-form-field)';
+		dualPaneFeature.style.borderRadius = '6px';
+		
+		dualPaneFeature.createEl('h4', { 
+			text: '◪ ' + t('menuDualMode'),
+			cls: 'feature-title'
+		});
+		dualPaneFeature.createEl('p', { 
+			text: t('featureSyncDesc'),
+			cls: 'feature-desc'
 		});
 
-		// ==================== 使用提示 ====================
-		containerEl.createEl('h3', { 
-			text: t('settingTipsTitle'), 
-			cls: 'setting-item-heading' 
+		// 三栏模式说明
+		const triplePaneFeature = featureContainer.createDiv('feature-item');
+		triplePaneFeature.style.marginBottom = '16px';
+		triplePaneFeature.style.padding = '12px';
+		triplePaneFeature.style.backgroundColor = 'var(--background-modifier-form-field)';
+		triplePaneFeature.style.borderRadius = '6px';
+		
+		triplePaneFeature.createEl('h4', { 
+			text: '▦ ' + t('menuTripleMode'),
+			cls: 'feature-title'
+		});
+		triplePaneFeature.createEl('p', { 
+			text: t('featureTripleDesc'),
+			cls: 'feature-desc'
 		});
 
-		const tipsList = containerEl.createEl('div', {
-			cls: 'dual-pane-tips',
-			attr: { style: 'margin: 12px 0;' }
+		// 翻页说明
+		const pageFeature = featureContainer.createDiv('feature-item');
+		pageFeature.style.marginBottom = '16px';
+		pageFeature.style.padding = '12px';
+		pageFeature.style.backgroundColor = 'var(--background-modifier-form-field)';
+		pageFeature.style.borderRadius = '6px';
+		
+		pageFeature.createEl('h4', { 
+			text: '⇅ ' + t('featureSync'),
+			cls: 'feature-title'
+		});
+		pageFeature.createEl('p', { 
+			text: t('featurePageUpDesc') + ' / ' + t('featurePageDownDesc'),
+			cls: 'feature-desc'
 		});
 
-		const tips = [
-			t('tipClick'),
-			t('tipEdit'),
-			t('tipScroll'),
-			t('tipMode'),
-			t('tipClose'),
-		];
+		// ========== 支持链接 ==========
+		const supportContainer = containerEl.createDiv('dual-pane-support');
+		supportContainer.style.marginTop = '24px';
+		supportContainer.style.paddingTop = '16px';
+		supportContainer.style.borderTop = '1px solid var(--background-modifier-border)';
 
-		tips.forEach((tip, index) => {
-			const item = tipsList.createEl('div', {
-				attr: { style: 'display: flex; align-items: center; margin: 6px 0; padding: 6px 0; border-bottom: 1px solid var(--background-modifier-border-hover);' }
-			});
-			item.createEl('span', { text: `${index + 1}.`, attr: { style: 'margin-right: 10px; color: var(--text-muted); font-weight: bold; min-width: 20px;' } });
-			item.createEl('span', { text: tip, attr: { style: 'color: var(--text-normal);' } });
+		supportContainer.createEl('h3', { text: t('support') });
+
+		const linksContainer = supportContainer.createDiv('setting-item');
+		
+		const docsLink = linksContainer.createEl('a', {
+			href: 'https://github.com/adeyahya/obsidian-tranquil-mode',
+			text: '📖 ' + t('docs')
 		});
+		docsLink.style.marginRight = '16px';
+		docsLink.target = '_blank';
+
+		const feedbackLink = linksContainer.createEl('a', {
+			href: 'https://github.com/adeyahya/obsidian-tranquil-mode/issues',
+			text: '🐛 ' + t('feedback')
+		});
+		feedbackLink.target = '_blank';
 	}
 }

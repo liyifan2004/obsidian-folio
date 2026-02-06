@@ -1,21 +1,6 @@
 # Dual Pane Sync View
 
-[![GitHub release](https://img.shields.io/github/v/release/adeyahya/obsidian-tranquil-mode)](https://github.com/adeyahya/obsidian-tranquil-mode/releases)
-[![Obsidian plugin](https://img.shields.io/badge/Obsidian-Plugin-purple)](https://obsidian.md)
-
 An Obsidian plugin that enables synchronized dual-pane or triple-pane reading/writing experience. View current screen and adjacent content simultaneously with perfectly synchronized scrolling.
-
-![Dual Pane Mode](assets/dual-pane-mode.png)
-*Dual Pane Mode: Main editor + Next screen*
-
-![Triple Pane Mode](assets/triple-pane-mode.png)
-*Triple Pane Mode: Previous + Main + Next screens*
-
-## 🌐 Languages
-
-This plugin supports 9 languages:
-
-[English](./docs/i18n/en.md) | [简体中文](./docs/i18n/zh.md) | [繁體中文](./docs/i18n/zh-TW.md) | [日本語](./docs/i18n/ja.md) | [한국어](./docs/i18n/ko.md) | [Français](./docs/i18n/fr.md) | [Deutsch](./docs/i18n/de.md) | [Español](./docs/i18n/es.md) | [العربية](./docs/i18n/ar.md)
 
 ## ✨ Features
 
@@ -94,15 +79,7 @@ Adjust the number of overlapping lines between panes (0-10 lines):
 - **5-10**: More context continuity
 
 ### Language
-Interface language is automatically detected from Obsidian settings. Supports:
-- English
-- 简体中文 / 繁體中文
-- 日本語
-- 한국어
-- Français
-- Deutsch
-- Español
-- العربية
+Interface language is automatically detected from Obsidian settings.
 
 ## 🎯 Use Cases
 
@@ -126,37 +103,7 @@ Interface language is automatically detected from Obsidian settings. Supports:
 - Full document context
 - Efficient proofreading workflow
 
-## 📸 Screenshots
-
-### Edit Mode
-![Edit Mode](assets/edit-mode.png)
-*Dual pane in Edit mode with synchronized scrolling*
-
-### Preview Mode
-![Preview Mode](assets/preview-mode.png)
-*Dual pane in Preview mode*
-
-### Triple Pane Context
-![Triple Pane](assets/triple-pane.png)
-*Triple pane showing full context awareness*
-
-## 🔧 Compatibility
-
-- Obsidian v0.15.0+
-- Desktop: Windows, macOS, Linux
-- Supports Edit, Preview, and Source modes
-- Works with all Markdown content
-
 ## 🤝 Feedback & Support
 
 - 📖 [Documentation](https://github.com/adeyahya/obsidian-tranquil-mode)
 - 🐛 [Report Issues](https://github.com/adeyahya/obsidian-tranquil-mode/issues)
-- ⭐ Star the repo if you find it useful!
-
-## 📜 License
-
-[MIT License](./LICENSE)
-
----
-
-Made with ❤️ for the Obsidian community
