@@ -1,0 +1,262 @@
+/* 双栏同步视图样式 */
+
+.dual-pane-sync-view {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	overflow: hidden;
+}
+
+/* 工具栏 */
+.dual-pane-toolbar {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 8px 12px;
+	background: var(--background-secondary);
+	border-bottom: 1px solid var(--divider-color);
+	flex-shrink: 0;
+}
+
+.dual-pane-file-info {
+	font-size: 12px;
+	color: var(--text-muted);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	max-width: 50%;
+}
+
+.dual-pane-buttons {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+}
+
+.dual-pane-btn {
+	padding: 4px 12px;
+	font-size: 12px;
+	background: var(--interactive-normal);
+	border: 1px solid var(--interactive-border);
+	border-radius: 4px;
+	cursor: pointer;
+	transition: background 0.2s;
+}
+
+.dual-pane-btn:hover {
+	background: var(--interactive-hover);
+}
+
+.dual-pane-sync-toggle {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	font-size: 12px;
+	color: var(--text-muted);
+	cursor: pointer;
+}
+
+.dual-pane-sync-toggle input {
+	cursor: pointer;
+}
+
+/* 双栏容器 */
+.dual-panes-wrapper {
+	display: flex;
+	flex: 1;
+	overflow: hidden;
+}
+
+/* 单个面板 */
+.dual-pane {
+	flex: 1;
+	overflow-y: auto;
+	overflow-x: hidden;
+	padding: 20px;
+	box-sizing: border-box;
+}
+
+.dual-pane.left-pane {
+	border-right: 0.5px solid var(--divider-color);
+}
+
+.dual-pane.right-pane {
+	border-left: 0.5px solid var(--divider-color);
+}
+
+/* 分隔线 */
+.pane-divider {
+	width: 1px;
+	background: var(--divider-color);
+	flex-shrink: 0;
+}
+
+/* 面板内容 */
+.pane-content {
+	max-width: 100%;
+}
+
+/* 自定义滚动条样式 */
+.dual-pane::-webkit-scrollbar {
+	width: 8px;
+}
+
+.dual-pane::-webkit-scrollbar-track {
+	background: var(--background-secondary);
+}
+
+.dual-pane::-webkit-scrollbar-thumb {
+	background: var(--background-modifier-border);
+	border-radius: 4px;
+}
+
+.dual-pane::-webkit-scrollbar-thumb:hover {
+	background: var(--interactive-accent);
+}
+
+/* 确保 Markdown 内容正确显示 */
+.pane-content.markdown-rendered {
+	font-size: var(--font-text-size);
+	line-height: var(--line-height-normal);
+}
+
+.pane-content.markdown-rendered img {
+	max-width: 100%;
+	height: auto;
+}
+
+.pane-content.markdown-rendered pre {
+	overflow-x: auto;
+}
+
+/* 适应不同主题 */
+.theme-dark .dual-pane-toolbar {
+	background: var(--background-secondary-alt);
+}
+
+/* 响应式布局 - 当宽度太小时变为单栏 */
+@media (max-width: 600px) {
+	.dual-panes-wrapper {
+		flex-direction: column;
+	}
+	
+	.dual-pane.left-pane,
+	.dual-pane.right-pane {
+		border: none;
+		border-bottom: 1px solid var(--divider-color);
+	}
+	
+	.pane-divider {
+		display: none;
+	}
+}
+
+/* 阅读模式优化 */
+.dual-pane-sync-view .markdown-preview-view {
+	padding: 0;
+}
+
+/* 选中文字高亮 */
+.dual-pane ::selection {
+	background: var(--text-selection);
+}
+
+/* 链接样式 */
+.pane-content a {
+	color: var(--link-color);
+	text-decoration: none;
+}
+
+.pane-content a:hover {
+	text-decoration: underline;
+}
+
+/* 代码块样式 */
+.pane-content pre {
+	background: var(--code-background);
+	padding: 16px;
+	border-radius: 6px;
+	overflow-x: auto;
+}
+
+.pane-content code {
+	font-family: var(--font-monospace);
+	font-size: 0.9em;
+	background: var(--code-background);
+	padding: 2px 4px;
+	border-radius: 3px;
+}
+
+.pane-content pre code {
+	padding: 0;
+	background: none;
+}
+
+/* 表格样式 */
+.pane-content table {
+	border-collapse: collapse;
+	width: 100%;
+	margin: 16px 0;
+}
+
+.pane-content th,
+.pane-content td {
+	border: 1px solid var(--background-modifier-border);
+	padding: 8px 12px;
+	text-align: left;
+}
+
+.pane-content th {
+	background: var(--background-secondary);
+	font-weight: 600;
+}
+
+/* 引用块样式 */
+.pane-content blockquote {
+	margin: 16px 0;
+	padding: 0 16px;
+	border-left: 4px solid var(--blockquote-border-color);
+	color: var(--blockquote-color);
+}
+
+/* 列表样式 */
+.pane-content ul,
+.pane-content ol {
+	padding-left: 24px;
+}
+
+.pane-content li {
+	margin: 4px 0;
+}
+
+/* 标题样式 */
+.pane-content h1,
+.pane-content h2,
+.pane-content h3,
+.pane-content h4,
+.pane-content h5,
+.pane-content h6 {
+	margin-top: 24px;
+	margin-bottom: 16px;
+	font-weight: 600;
+	line-height: 1.25;
+}
+
+.pane-content h1 { font-size: 2em; border-bottom: 1px solid var(--divider-color); padding-bottom: 8px; }
+.pane-content h2 { font-size: 1.5em; border-bottom: 1px solid var(--divider-color); padding-bottom: 6px; }
+.pane-content h3 { font-size: 1.25em; }
+.pane-content h4 { font-size: 1em; }
+.pane-content h5 { font-size: 0.875em; }
+.pane-content h6 { font-size: 0.85em; color: var(--text-muted); }
+
+/* 段落样式 */
+.pane-content p {
+	margin: 12px 0;
+}
+
+/* 水平分割线 */
+.pane-content hr {
+	border: none;
+	border-top: 1px solid var(--divider-color);
+	margin: 24px 0;
+}

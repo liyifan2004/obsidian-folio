@@ -1,0 +1,11 @@
+{
+	"id": "obsidian_view_sync",
+	"name": "Dual Pane Sync View",
+	"version": "1.0.0",
+	"minAppVersion": "0.15.0",
+	"description": "双栏同步阅读视图，左右两侧显示连续的文档内容，滚动同步，支持翻页",
+	"author": "Your Name",
+	"authorUrl": "",
+	"fundingUrl": "",
+	"isDesktopOnly": false
+}
