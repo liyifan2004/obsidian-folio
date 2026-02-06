@@ -147,17 +147,7 @@ export class DualPaneFollowMode {
 		// 绑定滚动事件
 		leftContainer.addEventListener('scroll', handleScroll, { passive: true });
 		
-		// 对于 CodeMirror 编辑器，还需要监听其特殊事件
-		const cmEditor = leftContainer.querySelector('.cm-content');
-		if (cmEditor) {
-			console.log('跟随模式：检测到 CodeMirror 编辑器');
-			// CodeMirror 6 的滚动事件可能需要特殊处理
-			const cmScroller = leftContainer.querySelector('.cm-scroller');
-			if (cmScroller && cmScroller !== leftContainer) {
-				cmScroller.addEventListener('scroll', handleScroll, { passive: true });
-			}
-		}
-		
+		// 清理函数
 		this.scrollCleanup = () => {
 			leftContainer.removeEventListener('scroll', handleScroll);
 			if (rafId) cancelAnimationFrame(rafId);
@@ -166,23 +156,30 @@ export class DualPaneFollowMode {
 
 	/**
 	 * 获取 MarkdownView 的滚动容器
+	 * 关键：根据当前模式返回正确的容器
 	 */
 	private getScrollContainer(view: MarkdownView): HTMLElement | null {
 		try {
-			// 获取 contentEl
 			const contentEl = view.contentEl;
 			if (!contentEl) return null;
 
-			// 对于编辑模式，优先查找 .cm-scroller
-			const cmScroller = contentEl.querySelector('.cm-scroller');
-			if (cmScroller instanceof HTMLElement) {
-				return cmScroller;
-			}
+			// 获取当前视图状态
+			const state = view.getState();
+			const mode = state.mode;
 
-			// 对于预览模式，查找 .markdown-preview-view
-			const previewView = contentEl.querySelector('.markdown-preview-view');
-			if (previewView instanceof HTMLElement) {
-				return previewView;
+			// 根据模式返回正确的滚动容器
+			if (mode === 'preview') {
+				// 阅读模式：使用 .markdown-preview-view
+				const previewView = contentEl.querySelector('.markdown-preview-view');
+				if (previewView instanceof HTMLElement) {
+					return previewView;
+				}
+			} else {
+				// 编辑/源码模式：使用 .cm-scroller
+				const cmScroller = contentEl.querySelector('.cm-scroller');
+				if (cmScroller instanceof HTMLElement) {
+					return cmScroller;
+				}
 			}
 
 			// 兜底：返回 .view-content
