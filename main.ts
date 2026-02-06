@@ -32,7 +32,7 @@ export default class DualPaneSyncPlugin extends Plugin {
 			this.showModeMenu(evt);
 		});
 
-		// 添加命令：打开独立双栏视图（仅阅读）
+		// 添加命令：打开独立双栏视图
 		this.addCommand({
 			id: 'open-dual-pane-view',
 			name: '打开独立双栏视图（仅阅读）',
@@ -44,7 +44,7 @@ export default class DualPaneSyncPlugin extends Plugin {
 		// 添加命令：启动跟随模式
 		this.addCommand({
 			id: 'start-follow-mode',
-			name: '启动跟随模式（原生编辑+接续预览）',
+			name: '启动跟随模式（可编辑）',
 			checkCallback: (checking: boolean) => {
 				const activeFile = this.app.workspace.getActiveFile();
 				if (activeFile) {
@@ -56,6 +56,67 @@ export default class DualPaneSyncPlugin extends Plugin {
 				return false;
 			}
 		});
+
+		// 添加命令：停止跟随模式
+		this.addCommand({
+			id: 'stop-follow-mode',
+			name: '停止跟随模式',
+			checkCallback: (checking: boolean) => {
+				if (this.followMode.isFollowing()) {
+					if (!checking) {
+						this.followMode.stopFollowMode();
+					}
+					return true;
+				}
+				return false;
+			}
+		});
+
+		// 添加命令：跟随模式翻页（供快捷键使用）
+		this.addCommand({
+			id: 'follow-mode-page-up',
+			name: '跟随模式: 上一页',
+			callback: () => {
+				if (this.followMode.isFollowing()) {
+					this.followMode.pageScroll('up');
+				}
+			}
+		});
+
+		this.addCommand({
+			id: 'follow-mode-page-down',
+			name: '跟随模式: 下一页',
+			callback: () => {
+				if (this.followMode.isFollowing()) {
+					this.followMode.pageScroll('down');
+				}
+			}
+		});
+
+		this.addCommand({
+			id: 'follow-mode-double-page-up',
+			name: '跟随模式: 连翻两页（上）',
+			callback: () => {
+				if (this.followMode.isFollowing()) {
+					this.followMode.pageScroll('up');
+					setTimeout(() => this.followMode.pageScroll('up'), 50);
+				}
+			}
+		});
+
+		this.addCommand({
+			id: 'follow-mode-double-page-down',
+			name: '跟随模式: 连翻两页（下）',
+			callback: () => {
+				if (this.followMode.isFollowing()) {
+					this.followMode.pageScroll('down');
+					setTimeout(() => this.followMode.pageScroll('down'), 50);
+				}
+			}
+		});
+
+		// 注册全局快捷键监听
+		this.registerGlobalHotkeys();
 
 		// 注册文件事件监听
 		this.registerFileEvents();
@@ -75,6 +136,44 @@ export default class DualPaneSyncPlugin extends Plugin {
 		if (this.followMode) {
 			this.followMode.stopFollowMode();
 		}
+	}
+
+	/**
+	 * 注册全局快捷键监听
+	 */
+	registerGlobalHotkeys(): void {
+		this.registerDomEvent(document, 'keydown', (e: KeyboardEvent) => {
+			// 如果不在跟随模式，不处理
+			if (!this.followMode.isFollowing()) return;
+
+			// 构建快捷键字符串
+			const parts: string[] = [];
+			if (e.ctrlKey) parts.push('Ctrl');
+			if (e.metaKey) parts.push('Cmd');
+			if (e.altKey) parts.push('Alt');
+			if (e.shiftKey) parts.push('Shift');
+			parts.push(e.key);
+
+			const hotkey = parts.join('+');
+			const hotkeys = this.settings.followModeHotkeys;
+
+			// 匹配快捷键并执行相应操作
+			if (hotkey === hotkeys.pageUp) {
+				e.preventDefault();
+				this.followMode.pageScroll('up');
+			} else if (hotkey === hotkeys.pageDown) {
+				e.preventDefault();
+				this.followMode.pageScroll('down');
+			} else if (hotkey === hotkeys.doublePageUp) {
+				e.preventDefault();
+				this.followMode.pageScroll('up');
+				setTimeout(() => this.followMode.pageScroll('up'), 50);
+			} else if (hotkey === hotkeys.doublePageDown) {
+				e.preventDefault();
+				this.followMode.pageScroll('down');
+				setTimeout(() => this.followMode.pageScroll('down'), 50);
+			}
+		});
 	}
 
 	/**
@@ -109,7 +208,6 @@ export default class DualPaneSyncPlugin extends Plugin {
 	 * 注册文件事件监听
 	 */
 	registerFileEvents() {
-		// 监听文件重命名事件
 		this.registerEvent(
 			this.app.vault.on('rename', (file, oldPath) => {
 				if (file instanceof TFile) {
@@ -118,7 +216,6 @@ export default class DualPaneSyncPlugin extends Plugin {
 			})
 		);
 
-		// 监听文件删除事件
 		this.registerEvent(
 			this.app.vault.on('delete', (file) => {
 				if (file instanceof TFile) {
@@ -127,7 +224,6 @@ export default class DualPaneSyncPlugin extends Plugin {
 			})
 		);
 
-		// 监听文件修改事件
 		this.registerEvent(
 			this.app.vault.on('modify', (file) => {
 				if (file instanceof TFile) {
@@ -185,9 +281,6 @@ export default class DualPaneSyncPlugin extends Plugin {
 		}
 	}
 
-	/**
-	 * 激活独立双栏视图 - 仅阅读模式
-	 */
 	async activateView(file?: TFile) {
 		const { workspace } = this.app;
 		
@@ -201,7 +294,6 @@ export default class DualPaneSyncPlugin extends Plugin {
 			return;
 		}
 
-		// 检查是否已存在该文件的双栏视图
 		const leaves = workspace.getLeavesOfType(VIEW_TYPE_DUAL_PANE);
 		for (const leaf of leaves) {
 			const view = (leaf.view as unknown) as DualPaneSyncView;
@@ -218,13 +310,10 @@ export default class DualPaneSyncPlugin extends Plugin {
 			return;
 		}
 
-		// 设置视图状态 - 仅阅读模式
 		await leaf.setViewState({ 
 			type: VIEW_TYPE_DUAL_PANE, 
 			active: true,
-			state: {
-				file: targetFile.path
-			}
+			state: { file: targetFile.path }
 		});
 
 		workspace.revealLeaf(leaf);

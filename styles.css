@@ -405,29 +405,10 @@
 
 /* ==================== 跟随模式样式 ==================== */
 
-/* 标记跟随模式的右侧窗口 */
-.dual-pane-follow-right {
-	border-left: 3px solid var(--interactive-accent) !important;
-}
-
-/* 跟随模式下的预览容器 */
-.dual-pane-follow-right .markdown-preview-view {
-	padding: 20px;
-}
-
 /* 跟随模式窗口的标题显示 */
-.dual-pane-follow-right .view-header-title::after {
+[data-follow-mode="true"] .view-header-title::after {
 	content: " (跟随)";
 	font-size: 11px;
 	color: var(--text-muted);
 	opacity: 0.7;
-}
-
-/* 确保跟随模式的编辑器和预览视图正确显示 */
-.dual-pane-follow-right .view-content {
-	height: 100%;
-}
-
-.dual-pane-follow-right .cm-editor {
-	height: 100%;
 }

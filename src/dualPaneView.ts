@@ -144,34 +144,46 @@ export class DualPaneSyncView extends ItemView {
 	}
 
 	setupScrollSync() {
+		// 使用 requestAnimationFrame 优化滚动性能
+		let leftRafId: number | null = null;
+		let rightRafId: number | null = null;
+
 		// 左侧面板滚动事件
 		this.leftPane.addEventListener('scroll', () => {
-			if (this.isScrolling) return;
-			this.isScrolling = true;
-			
-			this.leftScrollTop = this.leftPane.scrollTop;
-			
-			if (this.settings.scrollSyncEnabled) {
-				this.syncRightPane();
-			}
-			
-			this.resetScrollLock();
-		});
+			if (leftRafId) return;
+			leftRafId = requestAnimationFrame(() => {
+				leftRafId = null;
+				if (this.isScrolling) return;
+				this.isScrolling = true;
+				
+				this.leftScrollTop = this.leftPane.scrollTop;
+				
+				if (this.settings.scrollSyncEnabled) {
+					this.syncRightPane();
+				}
+				
+				this.resetScrollLock();
+			});
+		}, { passive: true });
 		
 		// 右侧面板滚动事件 - 反向同步到左栏
 		this.rightPane.addEventListener('scroll', () => {
-			if (this.isScrolling) return;
-			this.isScrolling = true;
-			
-			if (this.settings.scrollSyncEnabled) {
-				const paneHeight = this.rightPane.clientHeight;
-				const rightScrollTop = this.rightPane.scrollTop;
-				this.leftScrollTop = Math.max(0, rightScrollTop - paneHeight);
-				this.leftPane.scrollTop = this.leftScrollTop;
-			}
-			
-			this.resetScrollLock();
-		});
+			if (rightRafId) return;
+			rightRafId = requestAnimationFrame(() => {
+				rightRafId = null;
+				if (this.isScrolling) return;
+				this.isScrolling = true;
+				
+				if (this.settings.scrollSyncEnabled) {
+					const paneHeight = this.rightPane.clientHeight;
+					const rightScrollTop = this.rightPane.scrollTop;
+					this.leftScrollTop = Math.max(0, rightScrollTop - paneHeight);
+					this.leftPane.scrollTop = this.leftScrollTop;
+				}
+				
+				this.resetScrollLock();
+			});
+		}, { passive: true });
 	}
 
 	/**

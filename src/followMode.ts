@@ -3,8 +3,7 @@ import {
 	TFile, 
 	MarkdownView,
 	Notice,
-	Workspace,
-	ItemView
+	Workspace
 } from 'obsidian';
 
 /**
@@ -13,14 +12,14 @@ import {
  * 核心原理：
  * 1. 左侧保持用户当前的 MarkdownView（编辑或预览模式）
  * 2. 右侧创建一个新的 MarkdownView，强制为预览模式
- * 3. 监听左侧的滚动事件，计算滚动比例，同步到右侧
+ * 3. 监听左侧的滚动事件，计算滚动位置，同步到右侧
  */
 export class DualPaneFollowMode {
 	private workspace: Workspace;
 	private leftLeaf: WorkspaceLeaf | null = null;
 	private rightLeaf: WorkspaceLeaf | null = null;
 	private isActive: boolean = false;
-	private scrollListener: (() => void) | null = null;
+	private scrollCleanup: (() => void) | null = null;
 	private layoutChangeRef: (() => void) | null = null;
 
 	constructor(workspace: Workspace) {
@@ -35,19 +34,16 @@ export class DualPaneFollowMode {
 	 * 启动跟随模式
 	 */
 	async startFollowMode(): Promise<boolean> {
-		// 如果已经在跟随模式，先停止
 		if (this.isActive) {
 			this.stopFollowMode();
 		}
 
-		// 获取当前活动的 leaf
 		const activeLeaf = this.workspace.getMostRecentLeaf();
 		if (!activeLeaf) {
 			new Notice('请先打开一个文件');
 			return false;
 		}
 
-		// 检查当前是否是 MarkdownView
 		const file = this.getLeafFile(activeLeaf);
 		if (!file) {
 			new Notice('当前视图不支持双栏跟随模式，请先打开一个 Markdown 文件');
@@ -57,7 +53,6 @@ export class DualPaneFollowMode {
 		// 检查是否已经有该文件的跟随窗口
 		const existingRight = this.findFollowLeaf(file);
 		if (existingRight && existingRight !== activeLeaf) {
-			// 复用现有的右侧窗口
 			this.leftLeaf = activeLeaf;
 			this.rightLeaf = existingRight;
 			this.isActive = true;
@@ -72,7 +67,6 @@ export class DualPaneFollowMode {
 			// 创建右侧分割窗口
 			this.rightLeaf = this.workspace.createLeafBySplit(activeLeaf, 'vertical', false);
 			
-			// 等待分割完成
 			await new Promise(resolve => setTimeout(resolve, 100));
 			
 			// 在右侧打开同一个文件，强制为预览模式
@@ -81,7 +75,6 @@ export class DualPaneFollowMode {
 				active: true
 			});
 
-			// 等待视图加载
 			await new Promise(resolve => setTimeout(resolve, 200));
 
 			// 标记为跟随窗口
@@ -97,7 +90,7 @@ export class DualPaneFollowMode {
 
 		} catch (error) {
 			console.error('启动跟随模式失败:', error);
-			new Notice('启动跟随模式失败: ' + error.message);
+			new Notice('启动跟随模式失败');
 			this.cleanup();
 			return false;
 		}
@@ -107,22 +100,22 @@ export class DualPaneFollowMode {
 	 * 设置跟随
 	 */
 	private setupFollow(): void {
-		if (!this.leftLeaf || !this.rightLeaf) return;
-
-		// 等待视图完全加载后再设置滚动监听
+		if (!this.isActive) return;
+		
+		// 延迟设置，等待视图完全加载
 		setTimeout(() => {
 			if (!this.isActive) return;
 			
 			this.setupScrollSync();
 			this.setupLayoutListener();
 			
-			// 初始同步一次
+			// 初始同步
 			this.doSync();
 		}, 500);
 	}
 
 	/**
-	 * 设置滚动同步
+	 * 设置滚动同步 - 关键方法
 	 */
 	private setupScrollSync(): void {
 		if (!this.leftLeaf) return;
@@ -131,21 +124,20 @@ export class DualPaneFollowMode {
 		if (!(leftView instanceof MarkdownView)) return;
 
 		// 获取左侧的滚动容器
-		const leftContainer = this.getMarkdownViewScroller(leftView);
+		const leftContainer = this.getScrollContainer(leftView);
 		if (!leftContainer) {
 			console.warn('无法获取左侧滚动容器');
 			return;
 		}
 
-		console.log('设置滚动同步，容器:', leftContainer);
+		console.log('跟随模式：找到左侧滚动容器', leftContainer);
 
-		// 使用防抖的滚动处理器
-		let syncPending = false;
+		// 处理滚动的函数
+		let rafId: number | null = null;
 		const handleScroll = () => {
-			if (syncPending) return;
-			syncPending = true;
-			requestAnimationFrame(() => {
-				syncPending = false;
+			if (rafId) return;
+			rafId = requestAnimationFrame(() => {
+				rafId = null;
 				if (this.isActive) {
 					this.doSync();
 				}
@@ -154,9 +146,56 @@ export class DualPaneFollowMode {
 
 		// 绑定滚动事件
 		leftContainer.addEventListener('scroll', handleScroll, { passive: true });
-		this.scrollListener = () => {
+		
+		// 对于 CodeMirror 编辑器，还需要监听其特殊事件
+		const cmEditor = leftContainer.querySelector('.cm-content');
+		if (cmEditor) {
+			console.log('跟随模式：检测到 CodeMirror 编辑器');
+			// CodeMirror 6 的滚动事件可能需要特殊处理
+			const cmScroller = leftContainer.querySelector('.cm-scroller');
+			if (cmScroller && cmScroller !== leftContainer) {
+				cmScroller.addEventListener('scroll', handleScroll, { passive: true });
+			}
+		}
+		
+		this.scrollCleanup = () => {
 			leftContainer.removeEventListener('scroll', handleScroll);
+			if (rafId) cancelAnimationFrame(rafId);
 		};
+	}
+
+	/**
+	 * 获取 MarkdownView 的滚动容器
+	 */
+	private getScrollContainer(view: MarkdownView): HTMLElement | null {
+		try {
+			// 获取 contentEl
+			const contentEl = view.contentEl;
+			if (!contentEl) return null;
+
+			// 对于编辑模式，优先查找 .cm-scroller
+			const cmScroller = contentEl.querySelector('.cm-scroller');
+			if (cmScroller instanceof HTMLElement) {
+				return cmScroller;
+			}
+
+			// 对于预览模式，查找 .markdown-preview-view
+			const previewView = contentEl.querySelector('.markdown-preview-view');
+			if (previewView instanceof HTMLElement) {
+				return previewView;
+			}
+
+			// 兜底：返回 .view-content
+			const viewContent = contentEl.querySelector('.view-content');
+			if (viewContent instanceof HTMLElement) {
+				return viewContent;
+			}
+
+			return contentEl;
+		} catch (error) {
+			console.error('获取滚动容器失败:', error);
+			return null;
+		}
 	}
 
 	/**
@@ -174,8 +213,8 @@ export class DualPaneFollowMode {
 			}
 
 			// 获取滚动容器
-			const leftContainer = this.getMarkdownViewScroller(leftView);
-			const rightContainer = this.getMarkdownViewScroller(rightView);
+			const leftContainer = this.getScrollContainer(leftView);
+			const rightContainer = this.getScrollContainer(rightView);
 
 			if (!leftContainer || !rightContainer) {
 				return;
@@ -184,10 +223,8 @@ export class DualPaneFollowMode {
 			// 获取左侧滚动信息
 			const leftScrollTop = leftContainer.scrollTop;
 			const leftHeight = leftContainer.clientHeight;
-			const leftScrollHeight = leftContainer.scrollHeight;
 
-			// 计算右侧目标滚动位置
-			// 右侧顶部 = 左侧底部
+			// 计算右侧目标滚动位置：右侧顶部 = 左侧底部
 			let targetScrollTop = leftScrollTop + leftHeight;
 
 			// 确保不超出范围
@@ -208,37 +245,36 @@ export class DualPaneFollowMode {
 	}
 
 	/**
-	 * 获取 MarkdownView 的滚动容器
+	 * 翻页 - 供快捷键使用
 	 */
-	private getMarkdownViewScroller(view: MarkdownView): HTMLElement | null {
+	pageScroll(direction: 'up' | 'down'): void {
+		if (!this.leftLeaf || !this.rightLeaf) return;
+
 		try {
-			// 获取 contentEl
-			const contentEl = view.contentEl;
-			if (!contentEl) return null;
+			const leftView = this.leftLeaf.view;
+			if (!(leftView instanceof MarkdownView)) return;
 
-			// 方法1：直接查找 .view-content
-			const viewContent = contentEl.querySelector('.view-content');
-			if (viewContent instanceof HTMLElement) {
-				return viewContent;
+			const leftContainer = this.getScrollContainer(leftView);
+			if (!leftContainer) return;
+
+			const paneHeight = leftContainer.clientHeight;
+			let newScrollTop = leftContainer.scrollTop;
+
+			if (direction === 'down') {
+				newScrollTop += paneHeight;
+			} else {
+				newScrollTop -= paneHeight;
 			}
 
-			// 方法2：查找 .markdown-preview-view
-			const previewView = contentEl.querySelector('.markdown-preview-view');
-			if (previewView instanceof HTMLElement) {
-				return previewView;
-			}
+			// 确保不超出范围
+			const maxScroll = leftContainer.scrollHeight - leftContainer.clientHeight;
+			newScrollTop = Math.max(0, Math.min(newScrollTop, maxScroll));
 
-			// 方法3：查找 CodeMirror 的 scroller
-			const cmScroller = contentEl.querySelector('.cm-scroller');
-			if (cmScroller instanceof HTMLElement) {
-				return cmScroller;
-			}
+			// 应用到左侧，右侧会自动跟随
+			leftContainer.scrollTop = newScrollTop;
 
-			// 方法4：返回 contentEl 本身
-			return contentEl;
 		} catch (error) {
-			console.error('获取滚动容器失败:', error);
-			return null;
+			console.error('翻页失败:', error);
 		}
 	}
 
@@ -246,7 +282,6 @@ export class DualPaneFollowMode {
 	 * 设置布局监听
 	 */
 	private setupLayoutListener(): void {
-		// 监听布局变化，检测窗口关闭
 		const handler = () => {
 			setTimeout(() => this.checkAndCleanup(), 100);
 		};
@@ -263,14 +298,12 @@ export class DualPaneFollowMode {
 	private checkAndCleanup(): void {
 		if (!this.isActive) return;
 
-		// 检查左侧是否有效
 		if (this.leftLeaf && !this.isLeafValid(this.leftLeaf)) {
 			this.stopFollowMode();
 			new Notice('双栏跟随模式已结束（左侧窗口已关闭）');
 			return;
 		}
 
-		// 检查右侧是否有效
 		if (this.rightLeaf && !this.isLeafValid(this.rightLeaf)) {
 			this.stopFollowMode();
 			new Notice('双栏跟随模式已结束（右侧窗口已关闭）');
@@ -283,15 +316,11 @@ export class DualPaneFollowMode {
 	 */
 	private isLeafValid(leaf: WorkspaceLeaf): boolean {
 		try {
-			// 检查 view 是否存在
 			if (!leaf.view) return false;
-			
-			// 检查是否在 DOM 中
 			const container = (leaf as any).containerEl;
 			if (container && !document.body.contains(container)) {
 				return false;
 			}
-
 			return true;
 		} catch (e) {
 			return false;
@@ -311,19 +340,16 @@ export class DualPaneFollowMode {
 	 * 清理资源
 	 */
 	private cleanup(): void {
-		// 移除滚动监听
-		if (this.scrollListener) {
-			this.scrollListener();
-			this.scrollListener = null;
+		if (this.scrollCleanup) {
+			this.scrollCleanup();
+			this.scrollCleanup = null;
 		}
 
-		// 移除布局监听
 		if (this.layoutChangeRef) {
 			this.layoutChangeRef();
 			this.layoutChangeRef = null;
 		}
 
-		// 取消标记
 		if (this.rightLeaf) {
 			this.unmarkFollowLeaf(this.rightLeaf);
 		}
@@ -357,14 +383,12 @@ export class DualPaneFollowMode {
 			if (view instanceof MarkdownView) {
 				const contentEl = view.contentEl;
 				if (contentEl) {
-					contentEl.addClass('dual-pane-follow-right');
 					contentEl.setAttribute('data-follow-mode', 'true');
 				}
 			}
-			// 也在 containerEl 上标记
 			const containerEl = (leaf as any).containerEl;
 			if (containerEl) {
-				containerEl.addClass('dual-pane-follow-right');
+				containerEl.setAttribute('data-follow-mode', 'true');
 			}
 		} catch (error) {
 			// ignore
@@ -380,13 +404,12 @@ export class DualPaneFollowMode {
 			if (view instanceof MarkdownView) {
 				const contentEl = view.contentEl;
 				if (contentEl) {
-					contentEl.removeClass('dual-pane-follow-right');
 					contentEl.removeAttribute('data-follow-mode');
 				}
 			}
 			const containerEl = (leaf as any).containerEl;
 			if (containerEl) {
-				containerEl.removeClass('dual-pane-follow-right');
+				containerEl.removeAttribute('data-follow-mode');
 			}
 		} catch (error) {
 			// ignore
@@ -398,38 +421,22 @@ export class DualPaneFollowMode {
 	 */
 	private findFollowLeaf(file: TFile): WorkspaceLeaf | null {
 		try {
-			// 获取所有 markdown 类型的 leaf
 			const leaves = this.workspace.getLeavesOfType('markdown');
 			
 			for (const leaf of leaves) {
 				const view = leaf.view;
 				if (!(view instanceof MarkdownView)) continue;
 				
-				// 检查是否标记为跟随窗口
 				const contentEl = view.contentEl;
 				const isMarked = contentEl?.getAttribute('data-follow-mode') === 'true';
 				
-				if (isMarked) {
-					// 检查是否是同一个文件
-					if (view.file && view.file.path === file.path) {
-						return leaf;
-					}
+				if (isMarked && view.file && view.file.path === file.path) {
+					return leaf;
 				}
 			}
 		} catch (error) {
 			console.error('查找跟随窗口失败:', error);
 		}
 		return null;
-	}
-
-	/**
-	 * 切换跟随模式
-	 */
-	toggleFollowMode(): void {
-		if (this.isActive) {
-			this.stopFollowMode();
-		} else {
-			this.startFollowMode();
-		}
 	}
 }
