@@ -4,11 +4,10 @@ import {
 	TFile, 
 	Notice,
 	MarkdownView,
-	ViewState,
 	Menu
 } from 'obsidian';
 import { DualPaneSyncView, VIEW_TYPE_DUAL_PANE } from './src/dualPaneView';
-import { DualPanePluginSettings, DEFAULT_SETTINGS, EditorMode, DualPaneViewState } from './src/types';
+import { DualPanePluginSettings, DEFAULT_SETTINGS, DualPaneViewState } from './src/types';
 import { DualPaneSettingTab } from './src/settings';
 import { DualPaneFollowMode } from './src/followMode';
 
@@ -22,7 +21,7 @@ export default class DualPaneSyncPlugin extends Plugin {
 		// 初始化跟随模式
 		this.followMode = new DualPaneFollowMode(this.app.workspace);
 
-		// 注册自定义视图（独立双栏模式）
+		// 注册独立双栏视图（仅阅读模式）
 		this.registerView(
 			VIEW_TYPE_DUAL_PANE,
 			(leaf) => new DualPaneSyncView(leaf, this.settings)
@@ -33,10 +32,10 @@ export default class DualPaneSyncPlugin extends Plugin {
 			this.showModeMenu(evt);
 		});
 
-		// 添加命令：打开独立双栏视图
+		// 添加命令：打开独立双栏视图（仅阅读）
 		this.addCommand({
 			id: 'open-dual-pane-view',
-			name: '打开独立双栏视图',
+			name: '打开独立双栏视图（仅阅读）',
 			callback: () => {
 				this.activateView();
 			}
@@ -45,7 +44,7 @@ export default class DualPaneSyncPlugin extends Plugin {
 		// 添加命令：启动跟随模式
 		this.addCommand({
 			id: 'start-follow-mode',
-			name: '启动跟随模式',
+			name: '启动跟随模式（原生编辑+接续预览）',
 			checkCallback: (checking: boolean) => {
 				const activeFile = this.app.workspace.getActiveFile();
 				if (activeFile) {
@@ -73,7 +72,6 @@ export default class DualPaneSyncPlugin extends Plugin {
 	}
 
 	onunload() {
-		// 清理跟随模式
 		if (this.followMode) {
 			this.followMode.stopFollowMode();
 		}
@@ -87,8 +85,8 @@ export default class DualPaneSyncPlugin extends Plugin {
 		const activeFile = this.app.workspace.getActiveFile();
 
 		menu.addItem((item) => {
-			item.setTitle('打开独立双栏视图')
-				.setIcon('columns')
+			item.setTitle('打开独立双栏视图（仅阅读）')
+				.setIcon('book-open')
 				.onClick(() => {
 					this.activateView();
 				});
@@ -96,7 +94,7 @@ export default class DualPaneSyncPlugin extends Plugin {
 
 		if (activeFile) {
 			menu.addItem((item) => {
-				item.setTitle('启动跟随模式')
+				item.setTitle('启动跟随模式（可编辑）')
 					.setIcon('git-pull-request')
 					.onClick(() => {
 						this.followMode.startFollowMode();
@@ -105,23 +103,6 @@ export default class DualPaneSyncPlugin extends Plugin {
 		}
 
 		menu.showAtPosition({ x: evt.pageX, y: evt.pageY });
-	}
-
-	/**
-	 * 获取当前活动视图的编辑模式和源码模式状态
-	 */
-	getCurrentEditorState(): { mode: EditorMode; isSourceMode: boolean } {
-		const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
-		if (!activeView) return { mode: 'preview', isSourceMode: false };
-		
-		// 通过检查视图状态确定模式
-		const state = activeView.getState();
-		if (state.mode === 'source') {
-			// source 模式下，source: true 表示源码模式，source: false 表示实时预览编辑
-			return { mode: 'edit', isSourceMode: state.source === true };
-		}
-		// preview 或默认状态
-		return { mode: state.mode === 'preview' ? 'preview' : 'edit', isSourceMode: false };
 	}
 
 	/**
@@ -146,7 +127,7 @@ export default class DualPaneSyncPlugin extends Plugin {
 			})
 		);
 
-		// 监听文件修改事件（可选：实时刷新内容）
+		// 监听文件修改事件
 		this.registerEvent(
 			this.app.vault.on('modify', (file) => {
 				if (file instanceof TFile) {
@@ -156,9 +137,6 @@ export default class DualPaneSyncPlugin extends Plugin {
 		);
 	}
 
-	/**
-	 * 处理文件重命名
-	 */
 	handleFileRename(file: TFile, oldPath: string) {
 		const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_DUAL_PANE);
 		for (const leaf of leaves) {
@@ -170,9 +148,6 @@ export default class DualPaneSyncPlugin extends Plugin {
 		}
 	}
 
-	/**
-	 * 处理文件删除
-	 */
 	handleFileDelete(file: TFile) {
 		const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_DUAL_PANE);
 		for (const leaf of leaves) {
@@ -184,9 +159,6 @@ export default class DualPaneSyncPlugin extends Plugin {
 		}
 	}
 
-	/**
-	 * 处理文件修改
-	 */
 	handleFileModify(file: TFile) {
 		if (!this.settings.autoRefresh) return;
 		
@@ -214,12 +186,11 @@ export default class DualPaneSyncPlugin extends Plugin {
 	}
 
 	/**
-	 * 激活双栏视图 - 在主编辑区打开（独立模式）
+	 * 激活独立双栏视图 - 仅阅读模式
 	 */
 	async activateView(file?: TFile) {
 		const { workspace } = this.app;
 		
-		// 确定要打开的文件
 		let targetFile: TFile | null | undefined = file;
 		if (!targetFile) {
 			targetFile = this.app.workspace.getActiveFile();
@@ -230,23 +201,16 @@ export default class DualPaneSyncPlugin extends Plugin {
 			return;
 		}
 
-		// 独立双栏视图默认使用阅读模式
-		// 不继承当前编辑器状态，确保默认进入阅读模式
-		const editorMode: EditorMode = 'preview';
-		const isSourceMode = false;
-
 		// 检查是否已存在该文件的双栏视图
 		const leaves = workspace.getLeavesOfType(VIEW_TYPE_DUAL_PANE);
 		for (const leaf of leaves) {
 			const view = (leaf.view as unknown) as DualPaneSyncView;
 			if (view.currentFile && view.currentFile.path === targetFile.path) {
-				// 复用已存在的视图
 				workspace.revealLeaf(leaf);
 				return;
 			}
 		}
 
-		// 在标签页中打开（使用 tab 类型，与正常文件打开方式一致）
 		const leaf = workspace.getLeaf('tab');
 		
 		if (!leaf) {
@@ -254,18 +218,15 @@ export default class DualPaneSyncPlugin extends Plugin {
 			return;
 		}
 
-		// 设置视图状态
+		// 设置视图状态 - 仅阅读模式
 		await leaf.setViewState({ 
 			type: VIEW_TYPE_DUAL_PANE, 
 			active: true,
 			state: {
-				file: targetFile.path,
-				mode: editorMode,
-				isSourceMode: isSourceMode
+				file: targetFile.path
 			}
 		});
 
-		// 激活该叶子
 		workspace.revealLeaf(leaf);
 	}
 }

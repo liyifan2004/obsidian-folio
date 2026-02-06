@@ -8,9 +8,8 @@ import {
 
 /**
  * 双栏跟随模式
- * 
- * 左侧：用户当前的原生编辑器/预览（完全原生，可编辑）
- * 右侧：只读预览，显示接续内容（左侧底部 = 右侧顶部）
+ * 左侧：原生编辑器/预览（用户正常使用）
+ * 右侧：只读预览，显示接续内容
  */
 export class DualPaneFollowMode {
 	private workspace: Workspace;
@@ -18,19 +17,16 @@ export class DualPaneFollowMode {
 	private rightLeaf: WorkspaceLeaf | null = null;
 	private isActive: boolean = false;
 	private leftScrollHandler: ((e: Event) => void) | null = null;
-	private checkInterval: number | null = null;
-	private file: TFile | null = null;
 	
-	// 用于标记右侧是跟随模式的叶子
+	// 使用 workspace 事件监听替代定时检查
+	private unregisterLayoutChange: (() => void) | null = null;
+
 	static readonly FOLLOW_LEAF_MARKER = 'dual-pane-follow-leaf';
 
 	constructor(workspace: Workspace) {
 		this.workspace = workspace;
 	}
 
-	/**
-	 * 检查是否处于跟随模式
-	 */
 	isFollowing(): boolean {
 		return this.isActive;
 	}
@@ -39,12 +35,10 @@ export class DualPaneFollowMode {
 	 * 启动跟随模式
 	 */
 	async startFollowMode(): Promise<boolean> {
-		// 如果已经在跟随模式，先停止
 		if (this.isActive) {
 			this.stopFollowMode();
 		}
 
-		// 获取当前活动的 leaf
 		const activeLeaf = this.workspace.getMostRecentLeaf();
 		if (!activeLeaf) {
 			new Notice('请先打开一个文件');
@@ -57,21 +51,20 @@ export class DualPaneFollowMode {
 			return false;
 		}
 
-		this.file = file;
-
-		// 检查是否已经有跟随模式的右侧窗口
+		// 检查是否已经有该文件的跟随窗口
 		const existingFollowLeaf = this.findExistingFollowLeaf(file);
-		if (existingFollowLeaf) {
+		if (existingFollowLeaf && this.checkLeafValid(existingFollowLeaf)) {
+			// 复用现有的右侧窗口
 			this.rightLeaf = existingFollowLeaf;
 			this.leftLeaf = activeLeaf;
-			this.setupScrollSync();
-			this.startAutoCheck();
 			this.isActive = true;
+			this.setupScrollSync();
+			this.setupLayoutListener();
+			this.syncScrollPosition();
 			new Notice('双栏跟随模式已启动');
 			return true;
 		}
 
-		// 保存左侧 leaf 引用
 		this.leftLeaf = activeLeaf;
 
 		try {
@@ -79,32 +72,32 @@ export class DualPaneFollowMode {
 			this.rightLeaf = this.workspace.createLeafBySplit(activeLeaf, 'vertical', false);
 			
 			// 在右侧以预览模式打开同一个文件
-			// 关键：使用 getViewState 和 setViewState 确保是预览模式
-			await this.rightLeaf.openFile(file);
-			
-			// 强制设置为预览模式（只读）
+			await this.rightLeaf.openFile(file, {
+				state: { mode: 'preview' }
+			});
+
+			// 强制设置为预览模式
 			await this.rightLeaf.setViewState({
 				type: 'markdown',
 				state: {
 					file: file.path,
-					mode: 'preview'  // 强制预览模式
+					mode: 'preview'
 				}
 			});
 
-			// 标记右侧 leaf 为跟随模式
 			this.markAsFollowLeaf(this.rightLeaf);
-
-			// 等待视图加载完成后设置滚动同步
-			setTimeout(() => {
-				this.setupScrollSync();
-				// 初始同步一次
-				this.syncScrollPosition();
-			}, 300);
-
-			// 启动自动检测
-			this.startAutoCheck();
-
+			
 			this.isActive = true;
+			
+			// 延迟设置滚动同步，等待渲染完成
+			setTimeout(() => {
+				if (this.isActive) {
+					this.setupScrollSync();
+					this.setupLayoutListener();
+					this.syncScrollPosition();
+				}
+			}, 500);
+
 			new Notice('双栏跟随模式已启动');
 			return true;
 
@@ -120,10 +113,7 @@ export class DualPaneFollowMode {
 	 * 停止跟随模式
 	 */
 	stopFollowMode(): void {
-		if (!this.isActive) {
-			return;
-		}
-
+		if (!this.isActive) return;
 		this.cleanup();
 		new Notice('双栏跟随模式已停止');
 	}
@@ -141,54 +131,81 @@ export class DualPaneFollowMode {
 		}
 		this.leftScrollHandler = null;
 
-		// 清除自动检测定时器
-		if (this.checkInterval) {
-			window.clearInterval(this.checkInterval);
-			this.checkInterval = null;
+		// 移除 layout 监听
+		if (this.unregisterLayoutChange) {
+			this.unregisterLayoutChange();
+			this.unregisterLayoutChange = null;
 		}
 
-		// 取消标记右侧 leaf
+		// 取消标记
 		if (this.rightLeaf) {
 			this.unmarkAsFollowLeaf(this.rightLeaf);
 		}
 
+		// 注意：不关闭右侧窗口，让用户自己决定是否关闭
+		// 如果需要自动关闭，取消下面注释
+		// if (this.rightLeaf && this.checkLeafValid(this.rightLeaf)) {
+		//     this.rightLeaf.detach();
+		// }
+
 		this.leftLeaf = null;
 		this.rightLeaf = null;
-		this.file = null;
 		this.isActive = false;
 	}
 
 	/**
-	 * 启动自动检测
+	 * 设置布局变化监听
+	 * 使用 Obsidian 原生事件替代定时检查
 	 */
-	private startAutoCheck(): void {
-		this.checkInterval = window.setInterval(() => {
+	private setupLayoutListener(): void {
+		// 监听 active-leaf-change 事件来检测窗口关闭
+		const layoutChangeHandler = () => {
 			if (!this.isActive) return;
+			
+			// 延迟检查，等待布局更新完成
+			setTimeout(() => {
+				if (!this.isActive) return;
+				
+				// 检查右侧 leaf 是否被关闭
+				if (this.rightLeaf && !this.checkLeafValid(this.rightLeaf)) {
+					this.cleanup();
+					new Notice('双栏跟随模式已结束（右侧窗口已关闭）');
+					return;
+				}
+				
+				// 检查左侧 leaf 是否被关闭
+				if (this.leftLeaf && !this.checkLeafValid(this.leftLeaf)) {
+					this.cleanup();
+					new Notice('双栏跟随模式已结束（左侧窗口已关闭）');
+					return;
+				}
+			}, 100);
+		};
 
-			// 检查右侧 leaf 是否仍然存在
-			if (this.rightLeaf && !this.checkLeafExists(this.rightLeaf)) {
-				this.cleanup();
-				new Notice('双栏跟随模式已结束（右侧窗口已关闭）');
-				return;
-			}
-
-			// 检查左侧 leaf 是否仍然存在
-			if (this.leftLeaf && !this.checkLeafExists(this.leftLeaf)) {
-				this.cleanup();
-				new Notice('双栏跟随模式已结束（左侧窗口已关闭）');
-				return;
-			}
-		}, 500);
+		// 注册事件监听
+		this.workspace.on('active-leaf-change', layoutChangeHandler);
+		this.unregisterLayoutChange = () => {
+			this.workspace.off('active-leaf-change', layoutChangeHandler);
+		};
 	}
 
 	/**
-	 * 检查 leaf 是否仍然存在
+	 * 检查 leaf 是否仍然有效（未被关闭）
 	 */
-	private checkLeafExists(leaf: WorkspaceLeaf): boolean {
+	private checkLeafValid(leaf: WorkspaceLeaf): boolean {
 		try {
-			const leaves: WorkspaceLeaf[] = [];
-			this.collectLeaves((this.workspace as any).root, leaves);
-			return leaves.includes(leaf);
+			// 简单检查：leaf 是否有 view 属性且不为 null
+			if (!leaf || !leaf.view) {
+				return false;
+			}
+			
+			// 检查 leaf 是否还在 DOM 中
+			const container = (leaf as any).containerEl;
+			if (container && !document.contains(container)) {
+				return false;
+			}
+			
+			return true;
 		} catch (e) {
 			return false;
 		}
@@ -201,26 +218,32 @@ export class DualPaneFollowMode {
 		if (!this.leftLeaf || !this.rightLeaf) return;
 
 		const leftContainer = this.getScrollContainer(this.leftLeaf);
-
 		if (!leftContainer) {
 			console.warn('无法获取左侧滚动容器');
 			return;
 		}
 
-		// 创建滚动处理函数
+		// 移除旧的监听器
+		if (this.leftScrollHandler) {
+			leftContainer.removeEventListener('scroll', this.leftScrollHandler);
+		}
+
+		// 创建新的滚动处理函数
 		this.leftScrollHandler = (e: Event) => {
-			this.syncScrollPosition();
+			// 使用 requestAnimationFrame 优化性能
+			requestAnimationFrame(() => {
+				this.syncScrollPosition();
+			});
 		};
 
 		// 监听左侧滚动事件
 		leftContainer.addEventListener('scroll', this.leftScrollHandler, { passive: true });
 
-		console.log('滚动同步已设置');
+		console.log('跟随模式：滚动同步已设置');
 	}
 
 	/**
 	 * 同步滚动位置
-	 * 核心逻辑：右侧顶部 = 左侧底部
 	 */
 	private syncScrollPosition(): void {
 		if (!this.leftLeaf || !this.rightLeaf) return;
@@ -229,24 +252,20 @@ export class DualPaneFollowMode {
 			const leftContainer = this.getScrollContainer(this.leftLeaf);
 			const rightContainer = this.getScrollContainer(this.rightLeaf);
 
-			if (!leftContainer || !rightContainer) {
-				console.warn('无法获取滚动容器');
-				return;
-			}
+			if (!leftContainer || !rightContainer) return;
 
 			const leftScrollTop = leftContainer.scrollTop;
 			const leftHeight = leftContainer.clientHeight;
 
-			// 计算右侧应该滚动到的位置
+			// 右栏顶部 = 左栏底部
 			let targetScrollTop = leftScrollTop + leftHeight;
 
-			// 确保不超过右侧的最大滚动范围
+			// 确保不超过最大滚动范围
 			const maxScrollTop = rightContainer.scrollHeight - rightContainer.clientHeight;
 			if (targetScrollTop > maxScrollTop && maxScrollTop > 0) {
 				targetScrollTop = maxScrollTop;
 			}
 
-			// 应用滚动位置
 			rightContainer.scrollTop = targetScrollTop;
 		} catch (error) {
 			console.error('同步滚动位置失败:', error);
@@ -259,40 +278,27 @@ export class DualPaneFollowMode {
 	private getScrollContainer(leaf: WorkspaceLeaf): HTMLElement | null {
 		try {
 			const view = leaf.view;
-			
-			// 获取 view 的 contentEl
 			const contentEl = (view as any).contentEl;
 			if (!contentEl) return null;
 
-			// 优先查找 .view-content 作为滚动容器
-			const viewContent = contentEl.querySelector('.view-content');
-			if (viewContent instanceof HTMLElement) {
-				return viewContent;
+			// 尝试多个可能的容器
+			const selectors = [
+				'.view-content',
+				'.markdown-preview-view',
+				'.cm-scroller',
+				'.markdown-source-view .cm-scroller',
+				'.markdown-source-view'
+			];
+
+			for (const selector of selectors) {
+				const el = contentEl.querySelector(selector);
+				if (el instanceof HTMLElement) {
+					return el;
+				}
 			}
 
-			// 查找 .markdown-preview-view（阅读模式）
-			const previewContainer = contentEl.querySelector('.markdown-preview-view');
-			if (previewContainer instanceof HTMLElement) {
-				return previewContainer;
-			}
-			
-			// 查找 .cm-scroller（编辑模式 CodeMirror 6）
-			const editorContainer = contentEl.querySelector('.cm-scroller');
-			if (editorContainer instanceof HTMLElement) {
-				return editorContainer;
-			}
-			
-			// 查找 .markdown-source-view（源码模式）
-			const sourceContainer = contentEl.querySelector('.markdown-source-view .cm-scroller') 
-				|| contentEl.querySelector('.markdown-source-view');
-			if (sourceContainer instanceof HTMLElement) {
-				return sourceContainer;
-			}
-			
-			// 兜底：返回 contentEl 本身
 			return contentEl;
 		} catch (error) {
-			console.error('获取滚动容器失败:', error);
 			return null;
 		}
 	}
@@ -310,7 +316,7 @@ export class DualPaneFollowMode {
 				return (view as any).file;
 			}
 		} catch (error) {
-			console.error('获取 leaf 文件失败:', error);
+			// ignore
 		}
 		return null;
 	}
@@ -320,19 +326,14 @@ export class DualPaneFollowMode {
 	 */
 	private markAsFollowLeaf(leaf: WorkspaceLeaf): void {
 		try {
-			const container = this.getLeafContainer(leaf);
-			if (container) {
-				container.addClass(DualPaneFollowMode.FOLLOW_LEAF_MARKER);
-				container.setAttribute('data-dual-pane-follow', 'true');
-			}
-			// 同时在 view-content 上添加标记
 			const view = leaf.view;
 			const contentEl = (view as any).contentEl;
 			if (contentEl) {
 				contentEl.addClass(DualPaneFollowMode.FOLLOW_LEAF_MARKER);
+				contentEl.setAttribute('data-dual-pane-follow', 'true');
 			}
 		} catch (error) {
-			console.error('标记跟随 leaf 失败:', error);
+			// ignore
 		}
 	}
 
@@ -341,18 +342,14 @@ export class DualPaneFollowMode {
 	 */
 	private unmarkAsFollowLeaf(leaf: WorkspaceLeaf): void {
 		try {
-			const container = this.getLeafContainer(leaf);
-			if (container) {
-				container.removeClass(DualPaneFollowMode.FOLLOW_LEAF_MARKER);
-				container.removeAttribute('data-dual-pane-follow');
-			}
 			const view = leaf.view;
 			const contentEl = (view as any).contentEl;
 			if (contentEl) {
 				contentEl.removeClass(DualPaneFollowMode.FOLLOW_LEAF_MARKER);
+				contentEl.removeAttribute('data-dual-pane-follow');
 			}
 		} catch (error) {
-			console.error('取消标记跟随 leaf 失败:', error);
+			// ignore
 		}
 	}
 
@@ -361,13 +358,13 @@ export class DualPaneFollowMode {
 	 */
 	private findExistingFollowLeaf(file: TFile): WorkspaceLeaf | null {
 		try {
-			const leaves: WorkspaceLeaf[] = [];
-			this.collectLeaves((this.workspace as any).root, leaves);
+			// 遍历所有 leaf 查找标记的
+			const leaves = this.workspace.getLeavesOfType('markdown');
 			
 			for (const leaf of leaves) {
-				const container = this.getLeafContainer(leaf);
-				if (container && container.getAttribute('data-dual-pane-follow') === 'true') {
-					// 检查是否是同一个文件
+				const view = leaf.view;
+				const contentEl = (view as any).contentEl;
+				if (contentEl && contentEl.getAttribute('data-dual-pane-follow') === 'true') {
 					const leafFile = this.getLeafFile(leaf);
 					if (leafFile && leafFile.path === file.path) {
 						return leaf;
@@ -375,34 +372,19 @@ export class DualPaneFollowMode {
 				}
 			}
 		} catch (error) {
-			console.error('查找已存在的跟随 leaf 失败:', error);
+			// ignore
 		}
 		return null;
 	}
 
 	/**
-	 * 递归收集所有 leaves
+	 * 切换跟随模式
 	 */
-	private collectLeaves(node: any, leaves: WorkspaceLeaf[]): void {
-		if (!node) return;
-		
-		if (node.type === 'leaf') {
-			leaves.push(node);
-		} else if (node.children) {
-			for (const child of node.children) {
-				this.collectLeaves(child, leaves);
-			}
-		}
-	}
-
-	/**
-	 * 获取 leaf 的容器元素
-	 */
-	private getLeafContainer(leaf: WorkspaceLeaf): HTMLElement | null {
-		try {
-			return (leaf as any).containerEl || null;
-		} catch (error) {
-			return null;
+	toggleFollowMode(): void {
+		if (this.isActive) {
+			this.stopFollowMode();
+		} else {
+			this.startFollowMode();
 		}
 	}
 }
