@@ -299,7 +299,7 @@ export class DualPaneFollowMode {
 				
 				rightContainer.scrollTop = targetScrollTop;
 				
-				setTimeout(() => { this.isSyncingLeft = false; }, 50);
+				setTimeout(() => { this.isSyncingLeft = false; }, 16);
 			} else {
 				// 右→左：左侧顶部 = 右侧顶部 - 面板高度
 				this.isSyncingRight = true;
@@ -312,7 +312,7 @@ export class DualPaneFollowMode {
 				
 				leftContainer.scrollTop = targetScrollTop;
 				
-				setTimeout(() => { this.isSyncingRight = false; }, 50);
+				setTimeout(() => { this.isSyncingRight = false; }, 16);
 			}
 		} catch (error) {
 			console.error('同步滚动失败:', error);
@@ -473,6 +473,17 @@ export class DualPaneFollowMode {
 			const containerEl = (leaf as any).containerEl;
 			if (containerEl) containerEl.removeAttribute('data-follow-mode');
 		} catch (error) {}
+	}
+
+	/**
+	 * 切换跟随模式
+	 */
+	toggleFollowMode(): void {
+		if (this.isActive) {
+			this.stopFollowMode();
+		} else {
+			this.startFollowMode();
+		}
 	}
 
 	/**

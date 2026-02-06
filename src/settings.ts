@@ -1,4 +1,4 @@
-import { App, PluginSettingTab, Setting, Platform } from 'obsidian';
+import { App, PluginSettingTab, Setting } from 'obsidian';
 import DualPaneSyncPlugin from '../main';
 
 export class DualPaneSettingTab extends PluginSettingTab {
@@ -15,13 +15,58 @@ export class DualPaneSettingTab extends PluginSettingTab {
 
 		containerEl.createEl('h2', { text: '双栏同步阅读设置' });
 
-		// ==================== 通用设置 ====================
+		// ==================== 功能说明 ====================
 		containerEl.createEl('h3', { 
-			text: '🌐 通用设置', 
+			text: '📖 功能说明', 
 			cls: 'setting-item-heading' 
 		});
 
-		// 重合行数设置
+		const descEl = containerEl.createEl('div', { cls: 'setting-item-description' });
+		descEl.innerHTML = `
+			<p><strong>双栏同步阅读</strong>提供一种全新的阅读体验：</p>
+			<ul>
+				<li><strong>左侧窗口</strong>：Obsidian 原生编辑器/预览，可正常编辑使用</li>
+				<li><strong>右侧窗口</strong>：自动分割显示，接续左侧内容</li>
+				<li><strong>双向滚动</strong>：左右两侧滚动时互相跟随，保持内容接续</li>
+				<li><strong>模式自适应</strong>：左侧切换编辑/预览模式时，右侧自动适应</li>
+			</ul>
+		`;
+
+		// ==================== 快捷键设置说明 ====================
+		containerEl.createEl('h3', { 
+			text: '⌨️ 快捷键设置', 
+			cls: 'setting-item-heading' 
+		});
+
+		const hotkeyInfo = containerEl.createEl('div', { 
+			cls: 'setting-item',
+			attr: { style: 'background: var(--background-secondary); padding: 16px; border-radius: 8px; margin: 16px 0;' }
+		});
+		
+		hotkeyInfo.innerHTML = `
+			<p style="margin: 0 0 12px 0; font-weight: 600;">如何设置快捷键？</p>
+			<p style="margin: 0 0 8px 0;">请在 Obsidian 设置中配置快捷键：</p>
+			<ol style="margin: 8px 0; padding-left: 20px;">
+				<li>打开 <strong>设置 → 快捷键</strong></li>
+				<li>搜索 "跟随模式"</li>
+				<li>为以下命令绑定你喜欢的快捷键：</li>
+			</ol>
+			<ul style="margin: 8px 0; padding-left: 20px; color: var(--text-muted);">
+				<li>启动跟随模式 / 停止跟随模式</li>
+				<li>跟随模式: 上一页 / 下一页</li>
+				<li>跟随模式: 连翻两页（上）/ 连翻两页（下）</li>
+			</ul>
+			<p style="margin: 12px 0 0 0; font-size: 0.9em; color: var(--text-accent);">
+				💡 推荐设置：PageUp/PageDown 或 Ctrl+↑/Ctrl+↓
+			</p>
+		`;
+
+		// ==================== 重合行数设置 ====================
+		containerEl.createEl('h3', { 
+			text: '⚙️ 显示设置', 
+			cls: 'setting-item-heading' 
+		});
+
 		new Setting(containerEl)
 			.setName('重合行数')
 			.setDesc('设置左右两栏重合显示的行数。如果工具栏遮挡内容，请增加此值（推荐 2-3 行）')
@@ -35,218 +80,21 @@ export class DualPaneSettingTab extends PluginSettingTab {
 				})
 			);
 
-		// ==================== 独立双栏视图设置 ====================
+		// ==================== 使用提示 ====================
 		containerEl.createEl('h3', { 
-			text: '📖 独立双栏视图设置（仅阅读模式）', 
+			text: '💡 使用提示', 
 			cls: 'setting-item-heading' 
 		});
 
-		// 滚动同步设置
-		new Setting(containerEl)
-			.setName('启用滚动同步')
-			.setDesc('左右两栏是否同步滚动')
-			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.scrollSyncEnabled)
-				.onChange(async (value) => {
-					this.plugin.settings.scrollSyncEnabled = value;
-					await this.plugin.saveSettings();
-				}));
-
-		// 翻页模式设置
-		new Setting(containerEl)
-			.setName('翻页模式')
-			.setDesc('选择翻页时的行为')
-			.addDropdown(dropdown => dropdown
-				.addOption('single', '单栏翻页（右侧内容移到左侧）')
-				.addOption('both', '双栏翻页（跳过一整屏内容）')
-				.setValue(this.plugin.settings.pageScrollMode)
-				.onChange(async (value) => {
-					this.plugin.settings.pageScrollMode = value as 'single' | 'both';
-					await this.plugin.saveSettings();
-				}));
-
-		// 显示工具栏
-		new Setting(containerEl)
-			.setName('显示工具栏')
-			.setDesc('是否显示顶部工具栏（包含翻页按钮）')
-			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.showToolbar)
-				.onChange(async (value) => {
-					this.plugin.settings.showToolbar = value;
-					await this.plugin.saveSettings();
-				}));
-
-		// 自动刷新
-		new Setting(containerEl)
-			.setName('自动刷新')
-			.setDesc('文件修改时是否自动刷新内容')
-			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.autoRefresh)
-				.onChange(async (value) => {
-					this.plugin.settings.autoRefresh = value;
-					await this.plugin.saveSettings();
-				}));
-
-		// ==================== 跟随模式设置 ====================
-		containerEl.createEl('h3', { 
-			text: '🔄 跟随模式设置（可编辑模式）', 
-			cls: 'setting-item-heading' 
-		});
-
-		// 快捷键说明
-		const hotkeyDesc = containerEl.createEl('div', { 
-			cls: 'setting-item-description',
-			text: '设置跟随模式下的翻页快捷键。点击输入框后按下想要的快捷键组合。支持 Ctrl/Cmd、Alt、Shift 修饰键。'
-		});
-		hotkeyDesc.style.marginBottom = '20px';
-
-		// 上一页快捷键
-		this.createHotkeySetting(
-			containerEl,
-			'上一页快捷键',
-			'向上翻一页',
-			this.plugin.settings.followModeHotkeys.pageUp,
-			async (value) => {
-				this.plugin.settings.followModeHotkeys.pageUp = value;
-				await this.plugin.saveSettings();
-			}
-		);
-
-		// 下一页快捷键
-		this.createHotkeySetting(
-			containerEl,
-			'下一页快捷键',
-			'向下翻一页',
-			this.plugin.settings.followModeHotkeys.pageDown,
-			async (value) => {
-				this.plugin.settings.followModeHotkeys.pageDown = value;
-				await this.plugin.saveSettings();
-			}
-		);
-
-		// 连翻两页-上快捷键
-		this.createHotkeySetting(
-			containerEl,
-			'连翻两页-上',
-			'快速向上翻两页',
-			this.plugin.settings.followModeHotkeys.doublePageUp,
-			async (value) => {
-				this.plugin.settings.followModeHotkeys.doublePageUp = value;
-				await this.plugin.saveSettings();
-			}
-		);
-
-		// 连翻两页-下快捷键
-		this.createHotkeySetting(
-			containerEl,
-			'连翻两页-下',
-			'快速向下翻两页',
-			this.plugin.settings.followModeHotkeys.doublePageDown,
-			async (value) => {
-				this.plugin.settings.followModeHotkeys.doublePageDown = value;
-				await this.plugin.saveSettings();
-			}
-		);
-
-		// ==================== 使用说明 ====================
-		containerEl.createEl('h3', { 
-			text: '💡 使用说明', 
-			cls: 'setting-item-heading' 
-		});
-		
-		const desc = containerEl.createEl('div', { cls: 'setting-item-description' });
-		desc.createEl('p', { text: '• 点击左侧功能区 📑 图标，弹出菜单选择模式' });
-		desc.createEl('p', { text: '• 跟随模式：左侧可编辑（完全原生），右侧自动跟随滚动' });
-		desc.createEl('p', { text: '• 独立双栏视图：纯阅读模式，支持翻页按钮' });
-		desc.createEl('p', { text: '• 如果工具栏遮挡内容，请增加"重合行数"设置' });
-		desc.createEl('p', { text: '• 快捷键在跟随模式下生效，可快速翻页' });
-	}
-
-	/**
-	 * 创建快捷键设置项
-	 */
-	createHotkeySetting(
-		container: HTMLElement,
-		name: string,
-		desc: string,
-		currentValue: string,
-		onChange: (value: string) => Promise<void>
-	): void {
-		const setting = new Setting(container)
-			.setName(name)
-			.setDesc(desc);
-
-		// 创建输入框
-		const input = document.createElement('input');
-		input.type = 'text';
-		input.value = currentValue || '未设置';
-		input.readOnly = true;
-		input.style.width = '200px';
-		input.style.padding = '5px 10px';
-		input.style.border = '1px solid var(--background-modifier-border)';
-		input.style.borderRadius = '4px';
-		input.style.background = 'var(--background-primary)';
-		input.style.cursor = 'pointer';
-		input.style.textAlign = 'center';
-
-		// 点击输入框开始捕获快捷键
-		let capturing = false;
-		
-		input.addEventListener('click', () => {
-			if (capturing) return;
-			capturing = true;
-			input.value = '按下快捷键...';
-			input.style.borderColor = 'var(--interactive-accent)';
-			
-			const captureHandler = (e: KeyboardEvent) => {
-				e.preventDefault();
-				e.stopPropagation();
-				
-				// 忽略单独的修饰键
-				if (['Control', 'Alt', 'Shift', 'Meta'].includes(e.key)) {
-					return;
-				}
-				
-				// 构建快捷键字符串
-				const parts: string[] = [];
-				if (e.ctrlKey) parts.push('Ctrl');
-				if (e.metaKey) parts.push('Cmd');
-				if (e.altKey) parts.push('Alt');
-				if (e.shiftKey) parts.push('Shift');
-				parts.push(e.key);
-				
-				const hotkey = parts.join('+');
-				input.value = hotkey;
-				input.style.borderColor = 'var(--background-modifier-border)';
-				capturing = false;
-				
-				document.removeEventListener('keydown', captureHandler, true);
-				onChange(hotkey);
-			};
-			
-			document.addEventListener('keydown', captureHandler, true);
-			
-			// 5秒后自动取消
-			setTimeout(() => {
-				if (capturing) {
-					capturing = false;
-					input.value = currentValue || '未设置';
-					input.style.borderColor = 'var(--background-modifier-border)';
-					document.removeEventListener('keydown', captureHandler, true);
-				}
-			}, 5000);
-		});
-
-		// 清除按钮
-		const clearBtn = document.createElement('button');
-		clearBtn.textContent = '清除';
-		clearBtn.style.marginLeft = '8px';
-		clearBtn.addEventListener('click', () => {
-			input.value = '未设置';
-			onChange('');
-		});
-
-		setting.controlEl.appendChild(input);
-		setting.controlEl.appendChild(clearBtn);
+		const tipsEl = containerEl.createEl('div', { cls: 'setting-item-description' });
+		tipsEl.innerHTML = `
+			<ul>
+				<li>点击左侧功能区 <strong>📑 图标</strong> 启动/停止跟随模式</li>
+				<li>左侧可正常编辑，所有 Obsidian 功能完全可用</li>
+				<li>左右两侧滚动时会<strong>自动互相跟随</strong></li>
+				<li>左侧切换编辑/预览模式时，跟随不会中断</li>
+				<li>关闭右侧标签页即可退出跟随模式</li>
+			</ul>
+		`;
 	}
 }
