@@ -1,10 +1,14 @@
-// 编辑器模式类型
-export type EditorMode = 'edit' | 'preview' | 'source';
+// 编辑器模式类型：阅读和编辑是主状态
+export type EditorMode = 'edit' | 'preview';
+
+// 翻页模式
+export type PageScrollMode = 'single' | 'both';
 
 // 插件设置接口
 export interface DualPanePluginSettings {
 	scrollSyncEnabled: boolean;
 	pageScrollStep: number;
+	pageScrollMode: PageScrollMode;
 	showToolbar: boolean;
 	syncKeyboard: boolean;
 	autoRefresh: boolean;
@@ -12,7 +16,8 @@ export interface DualPanePluginSettings {
 
 export const DEFAULT_SETTINGS: DualPanePluginSettings = {
 	scrollSyncEnabled: true,
-	pageScrollStep: 0.95,  // 调整默认值，更接近满屏
+	pageScrollStep: 0.95,
+	pageScrollMode: 'single',  // 默认单栏翻页
 	showToolbar: true,
 	syncKeyboard: true,
 	autoRefresh: true
@@ -22,6 +27,7 @@ export const DEFAULT_SETTINGS: DualPanePluginSettings = {
 export interface DualPaneViewState extends Record<string, unknown> {
 	file?: string;
 	mode?: EditorMode;
+	isSourceMode?: boolean;  // 源码模式是编辑状态下的开关
 }
 
 // 内容分割信息

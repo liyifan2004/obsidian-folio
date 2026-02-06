@@ -12,10 +12,11 @@
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
-	padding: 8px 12px;
+	padding: 8px 16px;
 	background: var(--background-secondary);
 	border-bottom: 1px solid var(--divider-color);
 	flex-shrink: 0;
+	gap: 16px;
 }
 
 .dual-pane-file-info {
@@ -24,47 +25,66 @@
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
-	max-width: 25%;
+	max-width: 30%;
 	flex-shrink: 0;
 }
 
-/* 模式切换按钮组 */
+/* 模式切换按钮组 - 与翻页按钮保持一致的间距 */
 .dual-pane-mode-group {
 	display: flex;
-	gap: 0;
+	gap: 8px;  /* 与 dual-pane-buttons 保持一致 */
 	align-items: center;
-	background: var(--background-primary);
-	border-radius: 4px;
-	border: 1px solid var(--interactive-border);
-	overflow: hidden;
+	flex-shrink: 0;
 }
 
+/* 阅读/编辑按钮 - 互斥选择 */
 .dual-pane-mode-btn {
-	padding: 4px 12px;
+	padding: 4px 16px;
 	font-size: 12px;
-	background: transparent;
-	border: none;
+	background: var(--interactive-normal);
+	border: 1px solid var(--interactive-border);
+	border-radius: 4px;
 	cursor: pointer;
 	transition: all 0.2s;
-	color: var(--text-muted);
-	border-right: 1px solid var(--interactive-border);
-}
-
-.dual-pane-mode-btn:last-child {
-	border-right: none;
+	color: var(--text-normal);
+	min-width: 60px;
 }
 
 .dual-pane-mode-btn:hover {
 	background: var(--interactive-hover);
-	color: var(--text-normal);
 }
 
 .dual-pane-mode-btn.active {
 	background: var(--interactive-accent);
 	color: var(--text-on-accent);
+	border-color: var(--interactive-accent);
 }
 
-/* 按钮组 */
+/* 源码模式开关 - 编辑状态下的子选项 */
+.dual-pane-mode-btn.source-toggle {
+	background: transparent;
+	border: 1px dashed var(--interactive-border);
+	color: var(--text-muted);
+}
+
+.dual-pane-mode-btn.source-toggle:hover {
+	background: var(--interactive-hover);
+	border-style: solid;
+}
+
+.dual-pane-mode-btn.source-toggle.active {
+	background: var(--interactive-accent-hover);
+	color: var(--text-on-accent);
+	border-style: solid;
+	border-color: var(--interactive-accent);
+}
+
+.dual-pane-mode-btn.source-toggle.disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+/* 按钮组（翻页按钮） */
 .dual-pane-buttons {
 	display: flex;
 	gap: 8px;
@@ -73,13 +93,14 @@
 }
 
 .dual-pane-btn {
-	padding: 4px 12px;
+	padding: 4px 16px;
 	font-size: 12px;
 	background: var(--interactive-normal);
 	border: 1px solid var(--interactive-border);
 	border-radius: 4px;
 	cursor: pointer;
 	transition: background 0.2s;
+	min-width: 60px;
 }
 
 .dual-pane-btn:hover {
@@ -111,8 +132,8 @@
 	flex: 1;
 	overflow-y: auto;
 	overflow-x: hidden;
-	padding: 20px;
 	box-sizing: border-box;
+	position: relative;
 }
 
 .dual-pane.left-pane {
@@ -123,17 +144,25 @@
 	border-left: 0.5px solid var(--divider-color);
 }
 
+/* 面板内容 - 关键：确保填满容器 */
+.pane-content {
+	max-width: 100%;
+	min-height: 100%;
+	height: 100%;
+}
+
+/* 编辑模式下的面板内容 */
+.pane-content.editor-mode {
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+}
+
 /* 分隔线 */
 .pane-divider {
 	width: 1px;
 	background: var(--divider-color);
 	flex-shrink: 0;
-}
-
-/* 面板内容 */
-.pane-content {
-	max-width: 100%;
-	min-height: 100%;
 }
 
 /* 自定义滚动条样式 */
@@ -154,26 +183,19 @@
 	background: var(--interactive-accent);
 }
 
-/* 编辑器模式样式 */
-.dual-pane-editor,
-.dual-pane-source-editor {
+/* 编辑器容器 - 关键：确保填满整个面板 */
+.dual-pane-editor-container {
 	height: 100%;
+	width: 100%;
 	display: flex;
 	flex-direction: column;
 }
 
-.editor-hint {
-	font-size: 11px;
-	color: var(--text-muted);
-	padding: 4px 8px;
-	background: var(--background-secondary);
-	border-bottom: 1px solid var(--divider-color);
-	flex-shrink: 0;
-}
-
+/* 编辑器 textarea - 关键：填满容器 */
 .dual-pane-textarea {
 	width: 100%;
-	height: calc(100% - 24px);
+	height: 100% !important;  /* 强制填满高度 */
+	min-height: 100%;
 	background: var(--background-primary);
 	color: var(--text-normal);
 	border: none;
@@ -181,8 +203,11 @@
 	font-family: var(--font-monospace);
 	font-size: var(--font-text-size);
 	line-height: var(--line-height-normal);
-	padding: 10px;
+	padding: 20px;
+	margin: 0;
 	outline: none;
+	box-sizing: border-box;
+	overflow-y: auto;
 }
 
 .dual-pane-textarea:focus {
@@ -192,12 +217,19 @@
 .dual-pane-textarea.source-mode {
 	white-space: pre;
 	tab-size: 2;
+	font-size: 13px;
+}
+
+.dual-pane-textarea.edit-mode {
+	white-space: pre-wrap;
+	tab-size: 4;
 }
 
 /* 确保 Markdown 内容正确显示 */
 .pane-content.markdown-rendered {
 	font-size: var(--font-text-size);
 	line-height: var(--line-height-normal);
+	padding: 20px;
 }
 
 .pane-content.markdown-rendered img {
@@ -233,12 +265,24 @@
 	.dual-pane-toolbar {
 		flex-wrap: wrap;
 		gap: 8px;
+		padding: 8px 12px;
 	}
 	
 	.dual-pane-file-info {
 		max-width: 100%;
 		width: 100%;
 		order: -1;
+	}
+	
+	.dual-pane-mode-group,
+	.dual-pane-buttons {
+		gap: 6px;
+	}
+	
+	.dual-pane-mode-btn,
+	.dual-pane-btn {
+		padding: 4px 12px;
+		min-width: 50px;
 	}
 }
 

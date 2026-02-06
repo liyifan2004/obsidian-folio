@@ -7,7 +7,7 @@ import {
 	ViewState
 } from 'obsidian';
 import { DualPaneSyncView, VIEW_TYPE_DUAL_PANE } from './src/dualPaneView';
-import { DualPanePluginSettings, DEFAULT_SETTINGS, EditorMode } from './src/types';
+import { DualPanePluginSettings, DEFAULT_SETTINGS, EditorMode, DualPaneViewState } from './src/types';
 import { DualPaneSettingTab } from './src/settings';
 
 export default class DualPaneSyncPlugin extends Plugin {
@@ -82,19 +82,20 @@ export default class DualPaneSyncPlugin extends Plugin {
 	}
 
 	/**
-	 * 获取当前活动视图的编辑模式
+	 * 获取当前活动视图的编辑模式和源码模式状态
 	 */
-	getCurrentEditorMode(): EditorMode {
+	getCurrentEditorState(): { mode: EditorMode; isSourceMode: boolean } {
 		const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
-		if (!activeView) return 'preview';
+		if (!activeView) return { mode: 'preview', isSourceMode: false };
 		
 		// 通过检查视图状态确定模式
 		const state = activeView.getState();
 		if (state.mode === 'source') {
-			// 检查是否是源码模式
-			return state.source === true ? 'source' : 'edit';
+			// source 模式下，source: true 表示源码模式，source: false 表示实时预览编辑
+			return { mode: 'edit', isSourceMode: state.source === true };
 		}
-		return 'preview';
+		// preview 或默认状态
+		return { mode: state.mode === 'preview' ? 'preview' : 'edit', isSourceMode: false };
 	}
 
 	/**
@@ -204,7 +205,7 @@ export default class DualPaneSyncPlugin extends Plugin {
 		}
 
 		// 获取当前编辑模式
-		const editorMode = this.getCurrentEditorMode();
+		const { mode: editorMode, isSourceMode } = this.getCurrentEditorState();
 
 		// 检查是否已存在该文件的双栏视图
 		const leaves = workspace.getLeavesOfType(VIEW_TYPE_DUAL_PANE);
@@ -234,7 +235,8 @@ export default class DualPaneSyncPlugin extends Plugin {
 			active: true,
 			state: {
 				file: targetFile.path,
-				mode: editorMode
+				mode: editorMode,
+				isSourceMode: isSourceMode
 			}
 		});
 
