@@ -5,7 +5,7 @@ import {
 	Notice,
 	Workspace
 } from 'obsidian';
-import { DualPanePluginSettings, t } from './types';
+import { DualPanePluginSettings, t, detectObsidianLanguage, setLanguage } from './types';
 
 /**
  * 双栏跟随模式 - 增强版
@@ -33,6 +33,10 @@ export class DualPaneFollowMode {
 	constructor(workspace: Workspace, settings: DualPanePluginSettings) {
 		this.workspace = workspace;
 		this.settings = settings;
+		
+		// 确保语言设置正确（在启动时检测）
+		const detectedLang = detectObsidianLanguage();
+		setLanguage(detectedLang);
 	}
 
 	isFollowing(): boolean {

@@ -8,5 +8,5 @@ export const DEFAULT_SETTINGS: DualPanePluginSettings = {
 };
 
 // 重新导出 i18n
-export { t, setLanguage, translations } from './i18n';
+export { t, setLanguage, detectObsidianLanguage, getCurrentLanguage, translations } from './i18n';
 export type { Language, Translations } from './i18n';

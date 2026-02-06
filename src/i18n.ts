@@ -323,8 +323,47 @@ const translations: Record<Language, Translations> = {
 
 let currentLang: Language = 'en';
 
+/**
+ * 自动检测 Obsidian 语言设置
+ */
+export function detectObsidianLanguage(): Language {
+	// 获取 localStorage 中的语言设置
+	const obsidianLang = localStorage.getItem('language') || 'en';
+	
+	// 映射 Obsidian 语言代码到插件语言代码
+	const langMap: Record<string, Language> = {
+		'en': 'en',
+		'zh': 'zh',
+		'zh-TW': 'zh-TW',
+		'ja': 'ja',
+		'ko': 'ko',
+		'fr': 'fr',
+		'de': 'de',
+		'es': 'es',
+		'ar': 'ar',
+	};
+	
+	// 尝试匹配完整语言代码
+	if (langMap[obsidianLang]) {
+		return langMap[obsidianLang];
+	}
+	
+	// 尝试匹配语言前缀（如 'zh-CN' -> 'zh'）
+	const langPrefix = obsidianLang.split('-')[0];
+	if (langMap[langPrefix]) {
+		return langMap[langPrefix];
+	}
+	
+	// 默认英语
+	return 'en';
+}
+
 export function setLanguage(lang: Language) {
 	currentLang = lang;
+}
+
+export function getCurrentLanguage(): Language {
+	return currentLang;
 }
 
 export function t(key: string): string {
