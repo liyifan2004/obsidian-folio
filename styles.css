@@ -395,3 +395,30 @@
 	border-top: 1px solid var(--divider-color);
 	margin: 24px 0;
 }
+
+/* ==================== 跟随模式样式 ==================== */
+
+/* 标记跟随模式的右侧 leaf */
+.dual-pane-follow-leaf {
+	/* 可以添加特殊边框或背景来标识 */
+	border-left: 3px solid var(--interactive-accent) !important;
+}
+
+/* 跟随模式下的预览容器调整 */
+.dual-pane-follow-leaf .markdown-preview-view {
+	/* 确保内容完整显示 */
+	padding: 20px;
+}
+
+/* 隐藏跟随模式 leaf 的标题栏操作（可选） */
+.dual-pane-follow-leaf .view-header {
+	opacity: 0.7;
+}
+
+/* 跟随模式 leaf 的标题显示 */
+.dual-pane-follow-leaf .view-header-title::after {
+	content: " (跟随)";
+	font-size: 11px;
+	color: var(--text-muted);
+	opacity: 0.7;
+}

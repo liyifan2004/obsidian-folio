@@ -254,6 +254,24 @@ export class DualPaneSyncView extends ItemView {
 			
 			this.resetScrollLock();
 		});
+		
+		// 右侧面板滚动事件 - 反向同步到左栏
+		this.rightPane.addEventListener('scroll', () => {
+			if (this.isScrolling) return;
+			this.isScrolling = true;
+			
+			if (this.settings.scrollSyncEnabled && this.editorMode === 'preview') {
+				// 根据右栏位置计算左栏位置
+				const paneHeight = this.rightPane.clientHeight;
+				const rightScrollTop = this.rightPane.scrollTop;
+				
+				// 左栏顶部 = 右栏顶部 - 面板高度
+				this.leftScrollTop = Math.max(0, rightScrollTop - paneHeight);
+				this.leftPane.scrollTop = this.leftScrollTop;
+			}
+			
+			this.resetScrollLock();
+		});
 	}
 
 	/**
@@ -311,22 +329,11 @@ export class DualPaneSyncView extends ItemView {
 	}
 
 	setupKeyboardNav() {
-		if (!this.settings.syncKeyboard) return;
-		
+		// 注意：不再绑定默认的 PageUp/PageDown/空格键
+		// 用户可以通过 Obsidian 的快捷键设置自定义翻页快捷键
+		// 只设置 tabindex 使面板可以获得焦点
 		this.leftPane.setAttribute('tabindex', '0');
 		this.rightPane.setAttribute('tabindex', '0');
-		
-		this.containerEl.addEventListener('keydown', (e) => {
-			if (!this.settings.syncKeyboard) return;
-			
-			if (e.key === 'PageDown' || e.key === ' ') {
-				e.preventDefault();
-				this.pageScroll('down');
-			} else if (e.key === 'PageUp') {
-				e.preventDefault();
-				this.pageScroll('up');
-			}
-		});
 	}
 
 	async setFile(file: TFile) {
@@ -431,6 +438,7 @@ export class DualPaneSyncView extends ItemView {
 
 	/**
 	 * 在面板中创建编辑器
+	 * 注意：为了避免焦点丢失问题，两侧编辑器独立，不再实时同步 value
 	 */
 	createEditorInPane(container: HTMLElement, content: string, pane: 'left' | 'right') {
 		// 创建编辑器容器 - 确保填满父容器
@@ -451,22 +459,24 @@ export class DualPaneSyncView extends ItemView {
 			this.rightEditor = textarea;
 		}
 		
-		// 同步编辑内容到另一侧和文件
+		// 只在当前编辑器有焦点时保存文件，不同步到另一侧编辑器（避免焦点丢失）
 		textarea.addEventListener('input', () => {
 			const newValue = textarea.value;
-			
-			// 同步到另一侧编辑器
-			if (pane === 'left' && this.rightEditor) {
-				this.rightEditor.value = newValue;
-			} else if (pane === 'right' && this.leftEditor) {
-				this.leftEditor.value = newValue;
-			}
-			
 			// 保存到文件（使用防抖）
 			this.saveToFile(newValue);
 		});
 		
-		// 监听滚动事件以同步另一侧
+		// 失去焦点时同步到另一侧（这样不会打断输入）
+		textarea.addEventListener('blur', () => {
+			const currentValue = textarea.value;
+			if (pane === 'left' && this.rightEditor) {
+				this.rightEditor.value = currentValue;
+			} else if (pane === 'right' && this.leftEditor) {
+				this.leftEditor.value = currentValue;
+			}
+		});
+		
+		// 监听滚动事件以同步另一侧的滚动位置（不影响焦点）
 		textarea.addEventListener('scroll', () => {
 			if (pane === 'left' && this.rightEditor) {
 				// 计算行数偏移并同步到右栏
