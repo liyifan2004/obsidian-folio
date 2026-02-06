@@ -5,7 +5,7 @@ import {
 	Notice,
 	Workspace
 } from 'obsidian';
-import { DualPanePluginSettings } from './types';
+import { DualPanePluginSettings, t } from './types';
 
 /**
  * 双栏跟随模式 - 增强版
@@ -49,7 +49,7 @@ export class DualPaneFollowMode {
 
 		const activeLeaf = this.workspace.getMostRecentLeaf();
 		if (!activeLeaf) {
-			new Notice('请先打开一个文件');
+			new Notice(t('noticeNeedFile'));
 			return false;
 		}
 
@@ -69,7 +69,7 @@ export class DualPaneFollowMode {
 			this.rightLeaf = existingRight;
 			this.isActive = true;
 			this.setupFollow();
-			new Notice('双栏跟随模式已恢复');
+			new Notice(t('noticeStarted'));
 			return true;
 		}
 
@@ -97,7 +97,7 @@ export class DualPaneFollowMode {
 			// 设置跟随
 			this.setupFollow();
 
-			new Notice('双栏跟随模式已启动');
+			new Notice(t('noticeStarted'));
 			return true;
 
 		} catch (error) {
@@ -398,13 +398,13 @@ export class DualPaneFollowMode {
 
 		if (this.leftLeaf && !this.isLeafValid(this.leftLeaf)) {
 			this.stopFollowMode();
-			new Notice('双栏跟随模式已结束（左侧窗口已关闭）');
+			new Notice(t('noticeLeftClosed'));
 			return;
 		}
 
 		if (this.rightLeaf && !this.isLeafValid(this.rightLeaf)) {
 			this.stopFollowMode();
-			new Notice('双栏跟随模式已结束（右侧窗口已关闭）');
+			new Notice(t('noticeRightClosed'));
 			return;
 		}
 	}
@@ -429,7 +429,7 @@ export class DualPaneFollowMode {
 	stopFollowMode(): void {
 		if (!this.isActive) return;
 		this.cleanup();
-		new Notice('双栏跟随模式已停止');
+		new Notice(t('noticeStopped'));
 	}
 
 	/**
