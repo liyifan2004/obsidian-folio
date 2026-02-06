@@ -25,7 +25,7 @@ export default class DualPaneSyncPlugin extends Plugin {
 		await this.loadSettings();
 
 		// 初始化跟随模式
-		this.followMode = new DualPaneFollowMode(this.app.workspace);
+		this.followMode = new DualPaneFollowMode(this.app.workspace, this.settings);
 
 		// 添加功能区图标
 		this.addRibbonIcon('columns', '双栏同步阅读', (evt: MouseEvent) => {

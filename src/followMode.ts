@@ -5,6 +5,7 @@ import {
 	Notice,
 	Workspace
 } from 'obsidian';
+import { DualPanePluginSettings } from './types';
 
 /**
  * 双栏跟随模式 - 增强版
@@ -16,6 +17,7 @@ import {
  */
 export class DualPaneFollowMode {
 	private workspace: Workspace;
+	private settings: DualPanePluginSettings;
 	private leftLeaf: WorkspaceLeaf | null = null;
 	private rightLeaf: WorkspaceLeaf | null = null;
 	private isActive: boolean = false;
@@ -28,8 +30,9 @@ export class DualPaneFollowMode {
 	private isSyncingLeft: boolean = false;
 	private isSyncingRight: boolean = false;
 
-	constructor(workspace: Workspace) {
+	constructor(workspace: Workspace, settings: DualPanePluginSettings) {
 		this.workspace = workspace;
+		this.settings = settings;
 	}
 
 	isFollowing(): boolean {
@@ -284,14 +287,19 @@ export class DualPaneFollowMode {
 
 			if (!leftContainer || !rightContainer) return;
 
+			// 计算重合偏移量（像素）
+			const lineHeight = this.estimateLineHeight(leftContainer);
+			const overlapOffset = this.settings.overlapLines * lineHeight;
+
 			if (source === 'left') {
-				// 左→右：右侧顶部 = 左侧底部
+				// 左→右：右侧顶部 = 左侧底部 - 重合偏移
 				this.isSyncingLeft = true;
 				
 				const leftScrollTop = leftContainer.scrollTop;
 				const leftHeight = leftContainer.clientHeight;
 				
-				let targetScrollTop = leftScrollTop + leftHeight;
+				// 减去重合偏移，实现内容重合
+				let targetScrollTop = leftScrollTop + leftHeight - overlapOffset;
 				const rightMaxScroll = rightContainer.scrollHeight - rightContainer.clientHeight;
 				
 				if (targetScrollTop > rightMaxScroll) targetScrollTop = rightMaxScroll;
@@ -301,13 +309,14 @@ export class DualPaneFollowMode {
 				
 				setTimeout(() => { this.isSyncingLeft = false; }, 16);
 			} else {
-				// 右→左：左侧顶部 = 右侧顶部 - 面板高度
+				// 右→左：左侧顶部 = 右侧顶部 - 面板高度 + 重合偏移
 				this.isSyncingRight = true;
 				
 				const rightScrollTop = rightContainer.scrollTop;
 				const paneHeight = leftContainer.clientHeight;
 				
-				let targetScrollTop = rightScrollTop - paneHeight;
+				// 加上重合偏移
+				let targetScrollTop = rightScrollTop - paneHeight + overlapOffset;
 				if (targetScrollTop < 0) targetScrollTop = 0;
 				
 				leftContainer.scrollTop = targetScrollTop;
@@ -317,6 +326,23 @@ export class DualPaneFollowMode {
 		} catch (error) {
 			console.error('同步滚动失败:', error);
 		}
+	}
+
+	/**
+	 * 估算行高
+	 */
+	private estimateLineHeight(container: HTMLElement): number {
+		// 尝试从 DOM 中检测行高
+		const sampleEl = container.querySelector('p, .cm-line, .markdown-preview-sizer > div');
+		if (sampleEl instanceof HTMLElement) {
+			const computedStyle = window.getComputedStyle(sampleEl);
+			const lineHeight = parseFloat(computedStyle.lineHeight);
+			if (!isNaN(lineHeight) && lineHeight > 0) {
+				return lineHeight;
+			}
+		}
+		// 默认行高
+		return 28;
 	}
 
 	/**
