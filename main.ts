@@ -4,7 +4,8 @@ import {
 	TFile, 
 	Notice,
 	MarkdownView,
-	ViewState
+	ViewState,
+	Menu
 } from 'obsidian';
 import { DualPaneSyncView, VIEW_TYPE_DUAL_PANE } from './src/dualPaneView';
 import { DualPanePluginSettings, DEFAULT_SETTINGS, EditorMode, DualPaneViewState } from './src/types';
@@ -27,40 +28,24 @@ export default class DualPaneSyncPlugin extends Plugin {
 			(leaf) => new DualPaneSyncView(leaf, this.settings)
 		);
 
-		// 添加功能区图标
-		this.addRibbonIcon('columns', '打开双栏同步视图', () => {
-			this.activateView();
+		// 添加功能区图标（带弹出菜单）
+		this.addRibbonIcon('columns', '双栏同步视图', (evt: MouseEvent) => {
+			this.showModeMenu(evt);
 		});
 
 		// 添加命令：打开独立双栏视图
 		this.addCommand({
 			id: 'open-dual-pane-view',
-			name: '双栏视图: 打开独立双栏视图',
+			name: '打开独立双栏视图',
 			callback: () => {
 				this.activateView();
-			}
-		});
-
-		// 添加命令：从当前笔记打开独立双栏视图
-		this.addCommand({
-			id: 'open-current-in-dual-pane',
-			name: '双栏视图: 在当前笔记打开独立双栏视图',
-			checkCallback: (checking: boolean) => {
-				const activeFile = this.app.workspace.getActiveFile();
-				if (activeFile) {
-					if (!checking) {
-						this.activateView(activeFile);
-					}
-					return true;
-				}
-				return false;
 			}
 		});
 
 		// 添加命令：启动跟随模式
 		this.addCommand({
 			id: 'start-follow-mode',
-			name: '双栏视图: 启动跟随模式（原生编辑+接续预览）',
+			name: '启动跟随模式',
 			checkCallback: (checking: boolean) => {
 				const activeFile = this.app.workspace.getActiveFile();
 				if (activeFile) {
@@ -70,48 +55,6 @@ export default class DualPaneSyncPlugin extends Plugin {
 					return true;
 				}
 				return false;
-			}
-		});
-
-		// 添加命令：停止跟随模式
-		this.addCommand({
-			id: 'stop-follow-mode',
-			name: '双栏视图: 停止跟随模式',
-			checkCallback: (checking: boolean) => {
-				if (this.followMode.isFollowing()) {
-					if (!checking) {
-						this.followMode.stopFollowMode();
-					}
-					return true;
-				}
-				return false;
-			}
-		});
-
-		// 添加命令：切换跟随模式
-		this.addCommand({
-			id: 'toggle-follow-mode',
-			name: '双栏视图: 切换跟随模式',
-			callback: () => {
-				this.followMode.toggleFollowMode();
-			}
-		});
-
-		// 添加命令：翻页下一页
-		this.addCommand({
-			id: 'dual-pane-page-down',
-			name: '双栏视图: 下一页（仅独立模式）',
-			callback: () => {
-				this.pageScroll('down');
-			}
-		});
-
-		// 添加命令：翻页上一页
-		this.addCommand({
-			id: 'dual-pane-page-up',
-			name: '双栏视图: 上一页（仅独立模式）',
-			callback: () => {
-				this.pageScroll('up');
 			}
 		});
 
@@ -134,6 +77,34 @@ export default class DualPaneSyncPlugin extends Plugin {
 		if (this.followMode) {
 			this.followMode.stopFollowMode();
 		}
+	}
+
+	/**
+	 * 显示模式选择菜单
+	 */
+	showModeMenu(evt: MouseEvent): void {
+		const menu = new Menu();
+		const activeFile = this.app.workspace.getActiveFile();
+
+		menu.addItem((item) => {
+			item.setTitle('打开独立双栏视图')
+				.setIcon('columns')
+				.onClick(() => {
+					this.activateView();
+				});
+		});
+
+		if (activeFile) {
+			menu.addItem((item) => {
+				item.setTitle('启动跟随模式')
+					.setIcon('git-pull-request')
+					.onClick(() => {
+						this.followMode.startFollowMode();
+					});
+			});
+		}
+
+		menu.showAtPosition({ x: evt.pageX, y: evt.pageY });
 	}
 
 	/**
@@ -259,8 +230,10 @@ export default class DualPaneSyncPlugin extends Plugin {
 			return;
 		}
 
-		// 获取当前编辑模式
-		const { mode: editorMode, isSourceMode } = this.getCurrentEditorState();
+		// 独立双栏视图默认使用阅读模式
+		// 不继承当前编辑器状态，确保默认进入阅读模式
+		const editorMode: EditorMode = 'preview';
+		const isSourceMode = false;
 
 		// 检查是否已存在该文件的双栏视图
 		const leaves = workspace.getLeavesOfType(VIEW_TYPE_DUAL_PANE);
@@ -294,16 +267,5 @@ export default class DualPaneSyncPlugin extends Plugin {
 
 		// 激活该叶子
 		workspace.revealLeaf(leaf);
-	}
-
-	pageScroll(direction: 'up' | 'down') {
-		const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_DUAL_PANE);
-		if (leaves.length === 0) {
-			new Notice('请先打开双栏同步视图');
-			return;
-		}
-
-		const view = (leaves[0].view as unknown) as DualPaneSyncView;
-		view.pageScroll(direction);
 	}
 }

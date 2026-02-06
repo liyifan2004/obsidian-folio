@@ -225,6 +225,13 @@
 	tab-size: 4;
 }
 
+/* 只读编辑器样式 */
+.dual-pane-textarea.readonly {
+	background: var(--background-secondary) !important;
+	color: var(--text-muted);
+	cursor: default;
+}
+
 /* 确保 Markdown 内容正确显示 */
 .pane-content.markdown-rendered {
 	font-size: var(--font-text-size);

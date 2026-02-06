@@ -9,6 +9,7 @@ export interface DualPanePluginSettings {
 	scrollSyncEnabled: boolean;
 	pageScrollStep: number;
 	pageScrollMode: PageScrollMode;
+	overlapLines: number;  // 两侧重合行数（解决工具栏遮挡问题）
 	showToolbar: boolean;
 	syncKeyboard: boolean;
 	autoRefresh: boolean;
@@ -17,7 +18,8 @@ export interface DualPanePluginSettings {
 export const DEFAULT_SETTINGS: DualPanePluginSettings = {
 	scrollSyncEnabled: true,
 	pageScrollStep: 0.95,
-	pageScrollMode: 'single',  // 默认单栏翻页
+	pageScrollMode: 'single',
+	overlapLines: 2,  // 默认 2 行重合，解决工具栏遮挡问题
 	showToolbar: true,
 	syncKeyboard: true,
 	autoRefresh: true
@@ -27,14 +29,14 @@ export const DEFAULT_SETTINGS: DualPanePluginSettings = {
 export interface DualPaneViewState extends Record<string, unknown> {
 	file?: string;
 	mode?: EditorMode;
-	isSourceMode?: boolean;  // 源码模式是编辑状态下的开关
+	isSourceMode?: boolean;
 }
 
 // 内容分割信息
 export interface ContentSplitInfo {
-	leftStart: number;      // 左栏起始偏移（像素）
-	leftEnd: number;        // 左栏结束偏移（像素）
-	rightStart: number;     // 右栏起始偏移（像素）
-	rightEnd: number;       // 右栏结束偏移（像素）
-	totalHeight: number;    // 内容总高度
+	leftStart: number;
+	leftEnd: number;
+	rightStart: number;
+	rightEnd: number;
+	totalHeight: number;
 }

@@ -276,24 +276,43 @@ export class DualPaneSyncView extends ItemView {
 
 	/**
 	 * 同步右栏位置，实现内容接续
+	 * 考虑重合行数设置（解决工具栏遮挡问题）
 	 */
 	syncRightPane() {
 		// 仅在阅读模式下进行同步滚动
 		if (this.editorMode !== 'preview') return;
 		
 		const paneHeight = this.leftPane.clientHeight;
-		const leftMaxScroll = this.leftContent.scrollHeight - paneHeight;
+		const lineHeight = this.getLineHeightFromContent();
 		
-		// 计算左栏当前显示的底部位置
-		const leftBottom = this.leftScrollTop + paneHeight;
+		// 计算重合偏移（像素）
+		const overlapOffset = this.settings.overlapLines * lineHeight;
 		
-		// 右栏从该位置开始显示
-		this.rightPane.scrollTop = leftBottom;
+		// 计算左栏当前显示的底部位置，减去重合行数
+		const leftBottom = this.leftScrollTop + paneHeight - overlapOffset;
 		
-		// 同步编辑器的滚动位置（如果是编辑模式）
-		if (this.leftEditor && this.rightEditor) {
-			this.syncEditorScroll();
+		// 右栏从该位置开始显示（实现重合）
+		let targetScrollTop = leftBottom;
+		if (targetScrollTop < 0) targetScrollTop = 0;
+		
+		this.rightPane.scrollTop = targetScrollTop;
+	}
+
+	/**
+	 * 从内容中估计行高
+	 */
+	getLineHeightFromContent(): number {
+		// 尝试从内容中获取实际行高
+		const firstParagraph = this.leftContent.querySelector('p, li, h1, h2, h3, h4, h5, h6');
+		if (firstParagraph instanceof HTMLElement) {
+			const computedStyle = window.getComputedStyle(firstParagraph);
+			const lineHeight = parseFloat(computedStyle.lineHeight);
+			if (!isNaN(lineHeight) && lineHeight > 0) {
+				return lineHeight;
+			}
 		}
+		// 默认行高
+		return 24;
 	}
 
 	/**
@@ -306,12 +325,15 @@ export class DualPaneSyncView extends ItemView {
 		const lineHeight = this.getLineHeight();
 		const leftScrollLines = Math.floor(this.leftScrollTop / lineHeight);
 		
-		// 计算右栏应该显示的行数
+		// 计算右栏应该显示的行数，减去重合行数
 		const linesPerPane = Math.floor(leftPaneHeight / lineHeight);
-		const rightStartLine = leftScrollLines + linesPerPane;
+		const rightStartLine = leftScrollLines + linesPerPane - this.settings.overlapLines;
 		
 		// 设置右栏的滚动位置
-		this.rightEditor.scrollTop = rightStartLine * lineHeight;
+		let targetScrollTop = rightStartLine * lineHeight;
+		if (targetScrollTop < 0) targetScrollTop = 0;
+		
+		this.rightEditor.scrollTop = targetScrollTop;
 	}
 
 	getLineHeight(): number {
@@ -438,10 +460,15 @@ export class DualPaneSyncView extends ItemView {
 
 	/**
 	 * 在面板中创建编辑器
-	 * 注意：为了避免焦点丢失问题，两侧编辑器独立，不再实时同步 value
+	 * 方案：左侧可编辑，右侧只读显示接续内容
+	 * 
+	 * 关键设计：
+	 * 1. 编辑时不同步到文件（避免触发 modify 事件导致重渲染）
+	 * 2. 提供显式保存按钮
+	 * 3. 右侧只读，避免焦点竞争
 	 */
 	createEditorInPane(container: HTMLElement, content: string, pane: 'left' | 'right') {
-		// 创建编辑器容器 - 确保填满父容器
+		// 创建编辑器容器
 		const editorContainer = container.createDiv('dual-pane-editor-container');
 		
 		// 创建 textarea
@@ -459,35 +486,61 @@ export class DualPaneSyncView extends ItemView {
 			this.rightEditor = textarea;
 		}
 		
-		// 只在当前编辑器有焦点时保存文件，不同步到另一侧编辑器（避免焦点丢失）
-		textarea.addEventListener('input', () => {
-			const newValue = textarea.value;
-			// 保存到文件（使用防抖）
-			this.saveToFile(newValue);
-		});
-		
-		// 失去焦点时同步到另一侧（这样不会打断输入）
-		textarea.addEventListener('blur', () => {
-			const currentValue = textarea.value;
-			if (pane === 'left' && this.rightEditor) {
-				this.rightEditor.value = currentValue;
-			} else if (pane === 'right' && this.leftEditor) {
-				this.leftEditor.value = currentValue;
-			}
-		});
-		
-		// 监听滚动事件以同步另一侧的滚动位置（不影响焦点）
-		textarea.addEventListener('scroll', () => {
-			if (pane === 'left' && this.rightEditor) {
-				// 计算行数偏移并同步到右栏
-				const lineHeight = this.getLineHeight();
-				const scrollLines = Math.floor(textarea.scrollTop / lineHeight);
-				const linesPerPane = Math.floor(textarea.clientHeight / lineHeight);
-				this.rightEditor.scrollTop = (scrollLines + linesPerPane) * lineHeight;
-			}
-		});
+		if (pane === 'left') {
+			// 左侧：可编辑
+			textarea.removeAttribute('readonly');
+			
+			// 输入时只更新右侧显示，不保存到文件
+			// 这样可以避免文件修改事件导致的重渲染
+			textarea.addEventListener('input', () => {
+				// 使用 requestAnimationFrame 避免阻塞输入
+				requestAnimationFrame(() => {
+					if (this.rightEditor) {
+						const rightScrollTop = this.rightEditor.scrollTop;
+						this.rightEditor.value = textarea.value;
+						this.rightEditor.scrollTop = rightScrollTop;
+					}
+				});
+			});
+			
+			// 左侧滚动时同步右侧
+			textarea.addEventListener('scroll', () => {
+				if (this.rightEditor) {
+					const lineHeight = this.getLineHeight();
+					const scrollLines = Math.floor(textarea.scrollTop / lineHeight);
+					const linesPerPane = Math.floor(textarea.clientHeight / lineHeight);
+					this.rightEditor.scrollTop = (scrollLines + linesPerPane) * lineHeight;
+				}
+			});
+			
+			// 失焦时保存到文件
+			textarea.addEventListener('blur', () => {
+				this.saveToFile(textarea.value);
+			});
+			
+			// 定期保存（每 5 秒）
+			const autoSaveInterval = window.setInterval(() => {
+				if (textarea.value !== this.lastSavedContent) {
+					this.saveToFile(textarea.value);
+				}
+			}, 5000);
+			
+			// 清理函数
+			this.register(() => {
+				window.clearInterval(autoSaveInterval);
+			});
+			
+		} else {
+			// 右侧：只读
+			textarea.setAttribute('readonly', 'true');
+			textarea.addClass('readonly');
+			textarea.tabIndex = -1; // 禁止通过 tab 聚焦
+		}
 	}
 
+	// 上次保存的内容，用于比较
+	private lastSavedContent: string = '';
+	
 	// 防抖保存
 	private saveTimeout: number | null = null;
 	saveToFile(content: string) {
@@ -496,18 +549,20 @@ export class DualPaneSyncView extends ItemView {
 		}
 		
 		this.saveTimeout = window.setTimeout(async () => {
-			if (this.currentFile) {
+			if (this.currentFile && content !== this.lastSavedContent) {
 				try {
 					await this.app.vault.modify(this.currentFile, content);
+					this.lastSavedContent = content;
 				} catch (error) {
 					console.error('保存文件失败:', error);
 				}
 			}
-		}, 500);
+		}, 300);
 	}
 
 	/**
 	 * 初始化面板位置
+	 * 考虑重合行数设置
 	 */
 	initializePanePositions() {
 		if (this.editorMode === 'preview') {
@@ -524,8 +579,9 @@ export class DualPaneSyncView extends ItemView {
 				
 				// 左栏从第0行开始
 				this.leftEditor.scrollTop = 0;
-				// 右栏从 linesPerPane 行开始
-				this.rightEditor.scrollTop = linesPerPane * lineHeight;
+				// 右栏从 linesPerPane - overlapLines 行开始（实现重合）
+				const rightStartLine = Math.max(0, linesPerPane - this.settings.overlapLines);
+				this.rightEditor.scrollTop = rightStartLine * lineHeight;
 			}
 		}
 	}

@@ -9,22 +9,20 @@ import {
 /**
  * 双栏跟随模式
  * 
- * 原理：
- * 1. 左侧保持用户当前使用的原生 Obsidian 编辑器/预览
- * 2. 在右侧分割创建一个新的 leaf，打开同一个文件
- * 3. 监听左侧的滚动事件，实时同步右侧的滚动位置
- * 4. 右侧显示接续的内容（左侧底部 = 右侧顶部）
+ * 左侧：用户当前的原生编辑器/预览（完全原生，可编辑）
+ * 右侧：只读预览，显示接续内容（左侧底部 = 右侧顶部）
  */
 export class DualPaneFollowMode {
 	private workspace: Workspace;
 	private leftLeaf: WorkspaceLeaf | null = null;
 	private rightLeaf: WorkspaceLeaf | null = null;
 	private isActive: boolean = false;
-	private scrollHandler: (() => void) | null = null;
-	private resizeObserver: ResizeObserver | null = null;
+	private leftScrollHandler: ((e: Event) => void) | null = null;
+	private checkInterval: number | null = null;
+	private file: TFile | null = null;
 	
 	// 用于标记右侧是跟随模式的叶子
-	private static FOLLOW_LEAF_ID = 'dual-pane-follow-leaf';
+	static readonly FOLLOW_LEAF_MARKER = 'dual-pane-follow-leaf';
 
 	constructor(workspace: Workspace) {
 		this.workspace = workspace;
@@ -46,7 +44,7 @@ export class DualPaneFollowMode {
 			this.stopFollowMode();
 		}
 
-		// 获取当前活动的文件
+		// 获取当前活动的 leaf
 		const activeLeaf = this.workspace.getMostRecentLeaf();
 		if (!activeLeaf) {
 			new Notice('请先打开一个文件');
@@ -59,13 +57,15 @@ export class DualPaneFollowMode {
 			return false;
 		}
 
+		this.file = file;
+
 		// 检查是否已经有跟随模式的右侧窗口
-		const existingFollowLeaf = this.findExistingFollowLeaf();
+		const existingFollowLeaf = this.findExistingFollowLeaf(file);
 		if (existingFollowLeaf) {
-			// 复用现有的右侧窗口
 			this.rightLeaf = existingFollowLeaf;
 			this.leftLeaf = activeLeaf;
 			this.setupScrollSync();
+			this.startAutoCheck();
 			this.isActive = true;
 			new Notice('双栏跟随模式已启动');
 			return true;
@@ -78,16 +78,31 @@ export class DualPaneFollowMode {
 			// 在右侧分割创建新的 leaf
 			this.rightLeaf = this.workspace.createLeafBySplit(activeLeaf, 'vertical', false);
 			
-			// 在右侧打开同一个文件
-			await this.rightLeaf.openFile(file, {
-				state: { mode: 'preview' } // 右侧默认使用阅读模式
+			// 在右侧以预览模式打开同一个文件
+			// 关键：使用 getViewState 和 setViewState 确保是预览模式
+			await this.rightLeaf.openFile(file);
+			
+			// 强制设置为预览模式（只读）
+			await this.rightLeaf.setViewState({
+				type: 'markdown',
+				state: {
+					file: file.path,
+					mode: 'preview'  // 强制预览模式
+				}
 			});
 
 			// 标记右侧 leaf 为跟随模式
 			this.markAsFollowLeaf(this.rightLeaf);
 
-			// 设置滚动同步
-			this.setupScrollSync();
+			// 等待视图加载完成后设置滚动同步
+			setTimeout(() => {
+				this.setupScrollSync();
+				// 初始同步一次
+				this.syncScrollPosition();
+			}, 300);
+
+			// 启动自动检测
+			this.startAutoCheck();
 
 			this.isActive = true;
 			new Notice('双栏跟随模式已启动');
@@ -118,18 +133,18 @@ export class DualPaneFollowMode {
 	 */
 	private cleanup(): void {
 		// 移除滚动监听
-		if (this.scrollHandler && this.leftLeaf) {
-			const scrollContainer = this.getScrollContainer(this.leftLeaf);
-			if (scrollContainer) {
-				scrollContainer.removeEventListener('scroll', this.scrollHandler);
+		if (this.leftScrollHandler && this.leftLeaf) {
+			const leftContainer = this.getScrollContainer(this.leftLeaf);
+			if (leftContainer) {
+				leftContainer.removeEventListener('scroll', this.leftScrollHandler);
 			}
 		}
-		this.scrollHandler = null;
+		this.leftScrollHandler = null;
 
-		// 断开 ResizeObserver
-		if (this.resizeObserver) {
-			this.resizeObserver.disconnect();
-			this.resizeObserver = null;
+		// 清除自动检测定时器
+		if (this.checkInterval) {
+			window.clearInterval(this.checkInterval);
+			this.checkInterval = null;
 		}
 
 		// 取消标记右侧 leaf
@@ -137,14 +152,46 @@ export class DualPaneFollowMode {
 			this.unmarkAsFollowLeaf(this.rightLeaf);
 		}
 
-		// 可选：关闭右侧 leaf（如果用户想保留，可以注释掉）
-		// if (this.rightLeaf && !this.rightLeaf.getViewState()?.pinned) {
-		//     this.rightLeaf.detach();
-		// }
-
 		this.leftLeaf = null;
 		this.rightLeaf = null;
+		this.file = null;
 		this.isActive = false;
+	}
+
+	/**
+	 * 启动自动检测
+	 */
+	private startAutoCheck(): void {
+		this.checkInterval = window.setInterval(() => {
+			if (!this.isActive) return;
+
+			// 检查右侧 leaf 是否仍然存在
+			if (this.rightLeaf && !this.checkLeafExists(this.rightLeaf)) {
+				this.cleanup();
+				new Notice('双栏跟随模式已结束（右侧窗口已关闭）');
+				return;
+			}
+
+			// 检查左侧 leaf 是否仍然存在
+			if (this.leftLeaf && !this.checkLeafExists(this.leftLeaf)) {
+				this.cleanup();
+				new Notice('双栏跟随模式已结束（左侧窗口已关闭）');
+				return;
+			}
+		}, 500);
+	}
+
+	/**
+	 * 检查 leaf 是否仍然存在
+	 */
+	private checkLeafExists(leaf: WorkspaceLeaf): boolean {
+		try {
+			const leaves: WorkspaceLeaf[] = [];
+			this.collectLeaves((this.workspace as any).root, leaves);
+			return leaves.includes(leaf);
+		} catch (e) {
+			return false;
+		}
 	}
 
 	/**
@@ -154,96 +201,116 @@ export class DualPaneFollowMode {
 		if (!this.leftLeaf || !this.rightLeaf) return;
 
 		const leftContainer = this.getScrollContainer(this.leftLeaf);
-		const rightContainer = this.getScrollContainer(this.rightLeaf);
 
-		if (!leftContainer || !rightContainer) return;
+		if (!leftContainer) {
+			console.warn('无法获取左侧滚动容器');
+			return;
+		}
 
 		// 创建滚动处理函数
-		this.scrollHandler = () => {
-			this.syncScrollPosition(leftContainer, rightContainer);
+		this.leftScrollHandler = (e: Event) => {
+			this.syncScrollPosition();
 		};
 
 		// 监听左侧滚动事件
-		leftContainer.addEventListener('scroll', this.scrollHandler);
+		leftContainer.addEventListener('scroll', this.leftScrollHandler, { passive: true });
 
-		// 初始同步一次
-		this.syncScrollPosition(leftContainer, rightContainer);
-
-		// 监听窗口大小变化，重新同步
-		this.resizeObserver = new ResizeObserver(() => {
-			this.syncScrollPosition(leftContainer, rightContainer);
-		});
-		this.resizeObserver.observe(leftContainer);
-		this.resizeObserver.observe(rightContainer);
+		console.log('滚动同步已设置');
 	}
 
 	/**
 	 * 同步滚动位置
 	 * 核心逻辑：右侧顶部 = 左侧底部
 	 */
-	private syncScrollPosition(leftContainer: HTMLElement, rightContainer: HTMLElement): void {
-		const leftScrollTop = leftContainer.scrollTop;
-		const leftHeight = leftContainer.clientHeight;
-		const rightScrollHeight = rightContainer.scrollHeight;
-		const rightHeight = rightContainer.clientHeight;
+	private syncScrollPosition(): void {
+		if (!this.leftLeaf || !this.rightLeaf) return;
 
-		// 计算右侧应该滚动到的位置
-		// 右侧顶部应该显示左侧底部的内容
-		let targetScrollTop = leftScrollTop + leftHeight;
+		try {
+			const leftContainer = this.getScrollContainer(this.leftLeaf);
+			const rightContainer = this.getScrollContainer(this.rightLeaf);
 
-		// 确保不超过右侧的最大滚动范围
-		const maxScrollTop = rightScrollHeight - rightHeight;
-		if (targetScrollTop > maxScrollTop) {
-			targetScrollTop = maxScrollTop;
+			if (!leftContainer || !rightContainer) {
+				console.warn('无法获取滚动容器');
+				return;
+			}
+
+			const leftScrollTop = leftContainer.scrollTop;
+			const leftHeight = leftContainer.clientHeight;
+
+			// 计算右侧应该滚动到的位置
+			let targetScrollTop = leftScrollTop + leftHeight;
+
+			// 确保不超过右侧的最大滚动范围
+			const maxScrollTop = rightContainer.scrollHeight - rightContainer.clientHeight;
+			if (targetScrollTop > maxScrollTop && maxScrollTop > 0) {
+				targetScrollTop = maxScrollTop;
+			}
+
+			// 应用滚动位置
+			rightContainer.scrollTop = targetScrollTop;
+		} catch (error) {
+			console.error('同步滚动位置失败:', error);
 		}
-
-		// 应用滚动位置
-		rightContainer.scrollTop = targetScrollTop;
 	}
 
 	/**
 	 * 获取 leaf 的滚动容器
 	 */
 	private getScrollContainer(leaf: WorkspaceLeaf): HTMLElement | null {
-		// 尝试获取 MarkdownView 的滚动容器
-		const view = leaf.view;
-		if (view instanceof MarkdownView) {
-			// MarkdownView 的预览和编辑模式都有不同的容器
-			// 尝试获取 contentEl 中的可滚动元素
-			const contentEl = view.contentEl;
-			if (contentEl) {
-				// 查找 .markdown-preview-view 或 .cm-scroller
-				const previewContainer = contentEl.querySelector('.markdown-preview-view');
-				if (previewContainer instanceof HTMLElement) {
-					return previewContainer;
-				}
-				
-				const editorContainer = contentEl.querySelector('.cm-scroller');
-				if (editorContainer instanceof HTMLElement) {
-					return editorContainer;
-				}
-				
-				// 兜底：返回 contentEl 本身
-				return contentEl;
+		try {
+			const view = leaf.view;
+			
+			// 获取 view 的 contentEl
+			const contentEl = (view as any).contentEl;
+			if (!contentEl) return null;
+
+			// 优先查找 .view-content 作为滚动容器
+			const viewContent = contentEl.querySelector('.view-content');
+			if (viewContent instanceof HTMLElement) {
+				return viewContent;
 			}
-		}
 
-		// 尝试获取 view 的 containerEl
-		const containerEl = (leaf as any).containerEl || (leaf.view as any).containerEl;
-		if (containerEl instanceof HTMLElement) {
-			return containerEl;
+			// 查找 .markdown-preview-view（阅读模式）
+			const previewContainer = contentEl.querySelector('.markdown-preview-view');
+			if (previewContainer instanceof HTMLElement) {
+				return previewContainer;
+			}
+			
+			// 查找 .cm-scroller（编辑模式 CodeMirror 6）
+			const editorContainer = contentEl.querySelector('.cm-scroller');
+			if (editorContainer instanceof HTMLElement) {
+				return editorContainer;
+			}
+			
+			// 查找 .markdown-source-view（源码模式）
+			const sourceContainer = contentEl.querySelector('.markdown-source-view .cm-scroller') 
+				|| contentEl.querySelector('.markdown-source-view');
+			if (sourceContainer instanceof HTMLElement) {
+				return sourceContainer;
+			}
+			
+			// 兜底：返回 contentEl 本身
+			return contentEl;
+		} catch (error) {
+			console.error('获取滚动容器失败:', error);
+			return null;
 		}
-
-		return null;
 	}
 
 	/**
 	 * 获取 leaf 对应的文件
 	 */
 	private getLeafFile(leaf: WorkspaceLeaf): TFile | null {
-		const view = leaf.view;
-		if (view instanceof MarkdownView) {
-			return view.file;
+		try {
+			const view = leaf.view;
+			if (view instanceof MarkdownView) {
+				return view.file;
+			}
+			if ((view as any).file instanceof TFile) {
+				return (view as any).file;
+			}
+		} catch (error) {
+			console.error('获取 leaf 文件失败:', error);
 		}
 		return null;
 	}
@@ -252,10 +319,20 @@ export class DualPaneFollowMode {
 	 * 标记 leaf 为跟随模式
 	 */
 	private markAsFollowLeaf(leaf: WorkspaceLeaf): void {
-		const container = this.getLeafContainer(leaf);
-		if (container) {
-			container.addClass('dual-pane-follow-leaf');
-			container.setAttribute('data-dual-pane-follow', 'true');
+		try {
+			const container = this.getLeafContainer(leaf);
+			if (container) {
+				container.addClass(DualPaneFollowMode.FOLLOW_LEAF_MARKER);
+				container.setAttribute('data-dual-pane-follow', 'true');
+			}
+			// 同时在 view-content 上添加标记
+			const view = leaf.view;
+			const contentEl = (view as any).contentEl;
+			if (contentEl) {
+				contentEl.addClass(DualPaneFollowMode.FOLLOW_LEAF_MARKER);
+			}
+		} catch (error) {
+			console.error('标记跟随 leaf 失败:', error);
 		}
 	}
 
@@ -263,29 +340,42 @@ export class DualPaneFollowMode {
 	 * 取消标记
 	 */
 	private unmarkAsFollowLeaf(leaf: WorkspaceLeaf): void {
-		const container = this.getLeafContainer(leaf);
-		if (container) {
-			container.removeClass('dual-pane-follow-leaf');
-			container.removeAttribute('data-dual-pane-follow');
+		try {
+			const container = this.getLeafContainer(leaf);
+			if (container) {
+				container.removeClass(DualPaneFollowMode.FOLLOW_LEAF_MARKER);
+				container.removeAttribute('data-dual-pane-follow');
+			}
+			const view = leaf.view;
+			const contentEl = (view as any).contentEl;
+			if (contentEl) {
+				contentEl.removeClass(DualPaneFollowMode.FOLLOW_LEAF_MARKER);
+			}
+		} catch (error) {
+			console.error('取消标记跟随 leaf 失败:', error);
 		}
 	}
 
 	/**
 	 * 查找已存在的跟随模式 leaf
 	 */
-	private findExistingFollowLeaf(): WorkspaceLeaf | null {
-		// 遍历 workspace 的所有 root 来查找 leaves
-		const root = (this.workspace as any).root;
-		if (!root) return null;
-		
-		const leaves: WorkspaceLeaf[] = [];
-		this.collectLeaves(root, leaves);
-		
-		for (const leaf of leaves) {
-			const container = this.getLeafContainer(leaf);
-			if (container && container.getAttribute('data-dual-pane-follow') === 'true') {
-				return leaf;
+	private findExistingFollowLeaf(file: TFile): WorkspaceLeaf | null {
+		try {
+			const leaves: WorkspaceLeaf[] = [];
+			this.collectLeaves((this.workspace as any).root, leaves);
+			
+			for (const leaf of leaves) {
+				const container = this.getLeafContainer(leaf);
+				if (container && container.getAttribute('data-dual-pane-follow') === 'true') {
+					// 检查是否是同一个文件
+					const leafFile = this.getLeafFile(leaf);
+					if (leafFile && leafFile.path === file.path) {
+						return leaf;
+					}
+				}
 			}
+		} catch (error) {
+			console.error('查找已存在的跟随 leaf 失败:', error);
 		}
 		return null;
 	}
@@ -309,17 +399,10 @@ export class DualPaneFollowMode {
 	 * 获取 leaf 的容器元素
 	 */
 	private getLeafContainer(leaf: WorkspaceLeaf): HTMLElement | null {
-		return (leaf as any).containerEl || null;
-	}
-
-	/**
-	 * 切换跟随模式
-	 */
-	toggleFollowMode(): void {
-		if (this.isActive) {
-			this.stopFollowMode();
-		} else {
-			this.startFollowMode();
+		try {
+			return (leaf as any).containerEl || null;
+		} catch (error) {
+			return null;
 		}
 	}
 }
