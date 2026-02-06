@@ -3,10 +3,12 @@ import {
 	WorkspaceLeaf, 
 	TFile, 
 	Notice,
-	MarkdownView
+	MarkdownView,
+	ViewState
 } from 'obsidian';
 import { DualPaneSyncView, VIEW_TYPE_DUAL_PANE } from './src/dualPaneView';
-import { DualPanePluginSettings, DEFAULT_SETTINGS } from './src/types';
+import { DualPanePluginSettings, DEFAULT_SETTINGS, EditorMode } from './src/types';
+import { DualPaneSettingTab } from './src/settings';
 
 export default class DualPaneSyncPlugin extends Plugin {
 	settings: DualPanePluginSettings;
@@ -67,10 +69,107 @@ export default class DualPaneSyncPlugin extends Plugin {
 				return false;
 			}
 		});
+
+		// 注册文件事件监听
+		this.registerFileEvents();
+
+		// 添加设置面板
+		this.addSettingTab(new DualPaneSettingTab(this.app, this));
 	}
 
 	onunload() {
-		// 清理工作
+		// 清理工作 - 视图会自动被 Obsidian 清理
+	}
+
+	/**
+	 * 获取当前活动视图的编辑模式
+	 */
+	getCurrentEditorMode(): EditorMode {
+		const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+		if (!activeView) return 'preview';
+		
+		// 通过检查视图状态确定模式
+		const state = activeView.getState();
+		if (state.mode === 'source') {
+			// 检查是否是源码模式
+			return state.source === true ? 'source' : 'edit';
+		}
+		return 'preview';
+	}
+
+	/**
+	 * 注册文件事件监听
+	 */
+	registerFileEvents() {
+		// 监听文件重命名事件
+		this.registerEvent(
+			this.app.vault.on('rename', (file, oldPath) => {
+				if (file instanceof TFile) {
+					this.handleFileRename(file, oldPath);
+				}
+			})
+		);
+
+		// 监听文件删除事件
+		this.registerEvent(
+			this.app.vault.on('delete', (file) => {
+				if (file instanceof TFile) {
+					this.handleFileDelete(file);
+				}
+			})
+		);
+
+		// 监听文件修改事件（可选：实时刷新内容）
+		this.registerEvent(
+			this.app.vault.on('modify', (file) => {
+				if (file instanceof TFile) {
+					this.handleFileModify(file);
+				}
+			})
+		);
+	}
+
+	/**
+	 * 处理文件重命名
+	 */
+	handleFileRename(file: TFile, oldPath: string) {
+		const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_DUAL_PANE);
+		for (const leaf of leaves) {
+			const view = leaf.view as DualPaneSyncView;
+			if (view.currentFile && view.currentFile.path === file.path) {
+				view.setFile(file);
+				new Notice(`双栏视图：文件已重命名`);
+			}
+		}
+	}
+
+	/**
+	 * 处理文件删除
+	 */
+	handleFileDelete(file: TFile) {
+		const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_DUAL_PANE);
+		for (const leaf of leaves) {
+			const view = leaf.view as DualPaneSyncView;
+			if (view.currentFile && view.currentFile.path === file.path) {
+				view.clearContent();
+				new Notice('双栏视图：当前文件已被删除');
+			}
+		}
+	}
+
+	/**
+	 * 处理文件修改
+	 */
+	handleFileModify(file: TFile) {
+		if (!this.settings.autoRefresh) return;
+		
+		const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_DUAL_PANE);
+		for (const leaf of leaves) {
+			const view = leaf.view as DualPaneSyncView;
+			if (view.currentFile && view.currentFile.path === file.path) {
+				view.refresh();
+			}
+		}
 	}
 
 	async loadSettings() {
@@ -80,77 +179,67 @@ export default class DualPaneSyncPlugin extends Plugin {
 	async saveSettings() {
 		await this.saveData(this.settings);
 		
-		// 更新所有打开的视图
 		const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_DUAL_PANE);
 		for (const leaf of leaves) {
-			const view = leaf.view as DualPaneSyncView;
+			const view = (leaf.view as unknown) as DualPaneSyncView;
 			view.updateSettings(this.settings);
 		}
 	}
 
+	/**
+	 * 激活双栏视图 - 在主编辑区打开
+	 */
 	async activateView(file?: TFile) {
 		const { workspace } = this.app;
 		
-		// 检查是否已存在双栏视图
-		let leaf: WorkspaceLeaf | null = null;
-		const leaves = workspace.getLeavesOfType(VIEW_TYPE_DUAL_PANE);
+		// 确定要打开的文件
+		let targetFile: TFile | null | undefined = file;
+		if (!targetFile) {
+			targetFile = this.app.workspace.getActiveFile();
+		}
 		
-		if (leaves.length > 0) {
-			// 复用已存在的视图
-			leaf = leaves[0];
-		} else {
-			// 创建新的叶子面板 - 使用更兼容的方法
-			// 尝试获取右侧叶子，如果不支持则分割当前叶子
-			const rightLeaf = (workspace as any).getRightLeaf?.(false);
-			
-			if (rightLeaf) {
-				leaf = rightLeaf;
-			} else {
-				// 获取当前活动的 markdown 视图作为参考
-				let sourceLeaf: WorkspaceLeaf | null = null;
-				
-				// 尝试获取活动的 markdown 视图
-				const activeView = workspace.getActiveViewOfType(MarkdownView);
-				
-				if (activeView && activeView.leaf) {
-					sourceLeaf = activeView.leaf;
-				} else {
-					// 尝试获取任何活动的叶子
-					sourceLeaf = workspace.activeLeaf || null;
-				}
-				
-				// 如果没有可用的叶子，创建一个
-				if (sourceLeaf) {
-					leaf = workspace.createLeafBySplit(sourceLeaf);
-				} else {
-					// 最后的回退：创建一个新的叶子
-					leaf = workspace.getLeaf('split');
-				}
-			}
-			
-			if (!leaf) {
-				new Notice('无法创建视图');
+		if (!targetFile) {
+			new Notice('请先打开一个文件');
+			return;
+		}
+
+		// 获取当前编辑模式
+		const editorMode = this.getCurrentEditorMode();
+
+		// 检查是否已存在该文件的双栏视图
+		const leaves = workspace.getLeavesOfType(VIEW_TYPE_DUAL_PANE);
+		for (const leaf of leaves) {
+			const view = leaf.view as DualPaneSyncView;
+			if (view.currentFile && view.currentFile.path === targetFile.path) {
+				// 复用已存在的视图
+				workspace.revealLeaf(leaf);
 				return;
 			}
-			
-			await leaf.setViewState({ type: VIEW_TYPE_DUAL_PANE, active: true });
 		}
+
+		// 获取当前活动叶子作为参考
+		const activeLeaf = workspace.getMostRecentLeaf();
+		
+		// 在标签页中打开（使用 tab 类型，与正常文件打开方式一致）
+		const leaf = workspace.getLeaf('tab');
+		
+		if (!leaf) {
+			new Notice('无法创建视图');
+			return;
+		}
+
+		// 设置视图状态
+		await leaf.setViewState({ 
+			type: VIEW_TYPE_DUAL_PANE, 
+			active: true,
+			state: {
+				file: targetFile.path,
+				mode: editorMode
+			}
+		});
 
 		// 激活该叶子
 		workspace.revealLeaf(leaf);
-
-		// 如果有指定文件，在双栏视图中打开
-		if (file) {
-			const view = leaf.view as DualPaneSyncView;
-			view.setFile(file);
-		} else {
-			// 如果没有指定文件，尝试使用当前活动文件
-			const activeFile = this.app.workspace.getActiveFile();
-			if (activeFile) {
-				const view = leaf.view as DualPaneSyncView;
-				view.setFile(activeFile);
-			}
-		}
 	}
 
 	pageScroll(direction: 'up' | 'down') {
@@ -160,7 +249,7 @@ export default class DualPaneSyncPlugin extends Plugin {
 			return;
 		}
 
-		const view = leaves[0].view as DualPaneSyncView;
+		const view = (leaves[0].view as unknown) as DualPaneSyncView;
 		view.pageScroll(direction);
 	}
 }
