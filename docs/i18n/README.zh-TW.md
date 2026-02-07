@@ -1,9 +1,11 @@
-# 雙欄同步閱讀
+# Folio
 
-[![GitHub release](https://img.shields.io/github/v/release/yourusername/obsidian-dual-pane-sync)](https://github.com/yourusername/obsidian-dual-pane-sync/releases)
-[![License](https://img.shields.io/github/license/yourusername/obsidian-dual-pane-sync)](LICENSE)
+**Folio: 多欄工作區**
 
-> 為 [Obsidian](https://obsidian.md) 提供無縫雙欄閱讀體驗的挿件，支援雙向滾動同步。
+> 為流暢閱讀和編輯而生的連續多欄工作空間
+
+[![GitHub release](https://img.shields.io/github/v/release/yourusername/obsidian-folio)](https://github.com/yourusername/obsidian-folio/releases)
+[![License](https://img.shields.io/github/license/yourusername/obsidian-folio)](LICENSE)
 
 **[English](../../README.md)** | [简体中文](README.zh.md) | **繁體中文** | [日本語](README.ja.md) | [한국어](README.ko.md) | [Français](README.fr.md) | [Deutsch](README.de.md) | [Español](README.es.md) | [العربية](README.ar.md)
 
@@ -11,7 +13,7 @@
 
 ## 📖 概述
 
-**雙欄同步閱讀** 在 Obsidian 中創建一個同步的雙欄閱讀環境：
+**Folio** 在 Obsidian 中創建一個同步的雙欄閱讀環境：
 
 - **左側視窗**：原生 Obsidian 編輯器/預覽，完全可編輯
 - **右側視窗**：自動分割顯示，接續左側內容
@@ -47,7 +49,7 @@
 
 1. 開啟 **設定** → **第三方挿件**
 2. 關閉 **安全模式**
-3. 點擊 **瀏覽** 並搜尋 "雙欄同步閱讀"
+3. 點擊 **瀏覽** 並搜尋 "Folio"
 4. 點擊 **安裝**
 5. 啟用挿件
 
@@ -71,7 +73,7 @@
 ### 快捷鍵配置
 
 1. 開啟 **設定** → **快捷鍵**
-2. 搜尋 "雙欄同步閱讀"
+2. 搜尋 "Folio"
 3. 綁定你喜歡的按鍵
 
 **推薦快捷鍵：**
@@ -97,7 +99,7 @@
 
 <div align="center">
 
-**[⬆ 返回頂部](#雙欄同步閱讀)**
+**[⬆ 返回頂部](#folio)**
 
 用 ❤️ 為 Obsidian 社群製作
 

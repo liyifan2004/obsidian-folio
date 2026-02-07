@@ -1,9 +1,11 @@
-# 双栏同步阅读
+# Folio
 
-[![GitHub release](https://img.shields.io/github/v/release/yourusername/obsidian-dual-pane-sync)](https://github.com/yourusername/obsidian-dual-pane-sync/releases)
-[![License](https://img.shields.io/github/license/yourusername/obsidian-dual-pane-sync)](LICENSE)
+[![GitHub release](https://img.shields.io/github/v/release/yourusername/obsidian-folio)](https://github.com/yourusername/obsidian-folio/releases)
+[![License](https://img.shields.io/github/license/yourusername/obsidian-folio)](LICENSE)
 
-> 为 [Obsidian](https://obsidian.md) 提供无缝双栏阅读体验的插件，支持双向滚动同步。
+> **Folio: 多栏工作区**
+>
+> 为流畅阅读和编辑而生的连续多栏工作空间
 
 **[English](../../README.md)** | **简体中文** | [繁體中文](README.zh-TW.md) | [日本語](README.ja.md) | [한국어](README.ko.md) | [Français](README.fr.md) | [Deutsch](README.de.md) | [Español](README.es.md) | [العربية](README.ar.md)
 
@@ -11,7 +13,7 @@
 
 ## 📖 概述
 
-**双栏同步阅读** 在 Obsidian 中创建一个同步的双栏阅读环境：
+**Folio** 在 Obsidian 中创建一个同步的多栏阅读环境：
 
 - **左侧窗口**：原生 Obsidian 编辑器/预览，完全可编辑
 - **右侧窗口**：自动分割显示，接续左侧内容
@@ -56,7 +58,7 @@
 
 1. 打开 **设置** → **第三方插件**
 2. 关闭 **安全模式**
-3. 点击 **浏览** 并搜索 "双栏同步阅读"
+3. 点击 **浏览** 并搜索 "Folio"
 4. 点击 **安装**
 5. 启用插件
 
@@ -80,7 +82,7 @@
 ### 快捷键配置
 
 1. 打开 **设置** → **快捷键**
-2. 搜索 "双栏同步阅读"
+2. 搜索 "Folio"
 3. 绑定你喜欢的按键：
    - **切换**：启用/禁用跟随模式
    - **上一页/下一页**：按屏幕导航
@@ -93,7 +95,7 @@
 
 ### 调整重合行数
 
-1. 打开 **设置** → **双栏同步阅读**
+1. 打开 **设置** → **Folio**
 2. 调整 **重合行数** 滑块
 3. 更改立即生效
 
@@ -229,7 +231,7 @@ obsidian-dual-pane-sync/
 
 <div align="center">
 
-**[⬆ 返回顶部](#双栏同步阅读)**
+**[⬆ 返回顶部](#folio)**
 
 用 ❤️ 为 Obsidian 社区制作
 

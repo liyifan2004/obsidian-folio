@@ -1,7 +1,7 @@
 {
-	"name": "obsidian-dual-pane-sync-view",
+	"name": "obsidian-folio",
 	"version": "1.0.0",
-	"description": "双栏同步阅读 Obsidian 插件",
+	"description": "Folio: Multicolumn Workspace - A continuous multi-column workspace for seamless reading and editing",
 	"main": "main.js",
 	"scripts": {
 		"dev": "node esbuild.config.mjs",

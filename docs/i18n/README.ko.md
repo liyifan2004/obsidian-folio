@@ -1,9 +1,11 @@
-# 듀얼 페인 동기화 뷰
+# Folio
 
 [![GitHub release](https://img.shields.io/github/v/release/yourusername/obsidian-dual-pane-sync)](https://github.com/yourusername/obsidian-dual-pane-sync/releases)
 [![License](https://img.shields.io/github/license/yourusername/obsidian-dual-pane-sync)](LICENSE)
 
-> [Obsidian](https://obsidian.md)을 위한 양방향 스크롤 동기화 기능을 갖춘 매끄러운 듀얼 페인 독서 경험을 제공하는 플러그인입니다.
+> **Folio: 다중 열 작업 공간**
+>
+> 원활한 읽기와 편집을 위한 연속적인 다중 열 작업 공간
 
 **[English](../../README.md)** | [简体中文](README.zh.md) | [繁體中文](README.zh-TW.md) | [日本語](README.ja.md) | **한국어** | [Français](README.fr.md) | [Deutsch](README.de.md) | [Español](README.es.md) | [العربية](README.ar.md)
 
@@ -11,7 +13,7 @@
 
 ## 📖 개요
 
-**듀얼 페인 동기화 뷰**는 Obsidian에서 동기화된 듀얼 페인 독서 환경을 생성합니다:
+**Folio**는 Obsidian에서 동기화된 다중 열 독서 환경을 생성합니다:
 
 - **왼쪽 패널**: 기본 Obsidian 편집기/미리보기, 완전히 편집 가능
 - **오른쪽 패널**: 자동 분할 표시, 왼쪽 콘텐츠의 계속 표시
@@ -40,7 +42,7 @@
 
 1. **설정** → **커뮤니티 플러그인** 열기
 2. **안전 모드** 끄기
-3. **찾아보기** 클릭하고 "듀얼 페인 동기화 뷰" 검색
+3. **찾아보기** 클릭하고 "Folio" 검색
 4. **설치** 클릭
 5. 플러그인 활성화
 
@@ -72,7 +74,7 @@
 
 <div align="center">
 
-**[⬆ 맨 위로](#듀얼-페인-동기화-뷰)**
+**[⬆ 맨 위로](#folio)**
 
 Obsidian 커뮤니티를 위해 ❤️을 담아 제작
 

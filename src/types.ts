@@ -74,7 +74,7 @@ const translations: Record<Language, Record<string, string>> = {
 		'noticeTripleStarted': 'Triple pane mode started',
 		
 		// 工具栏
-		'ribbonTooltip': 'Dual/Triple Pane Sync',
+		'ribbonTooltip': 'Folio: Multicolumn Workspace',
 		
 		// 功能说明
 		'featureSync': 'Sync Scroll',
@@ -135,7 +135,7 @@ const translations: Record<Language, Record<string, string>> = {
 		'noticeTripleStarted': '三栏模式已启动',
 		
 		// 工具栏
-		'ribbonTooltip': '双栏/三栏同步阅读',
+		'ribbonTooltip': 'Folio: 多栏工作区',
 		
 		// 功能说明
 		'featureSync': '同步滚动',
@@ -196,7 +196,7 @@ const translations: Record<Language, Record<string, string>> = {
 		'noticeTripleStarted': '三欄模式已啟動',
 		
 		// 工具列
-		'ribbonTooltip': '雙欄/三欄同步閱讀',
+		'ribbonTooltip': 'Folio: 多欄工作區',
 		
 		// 功能說明
 		'featureSync': '同步捲動',
@@ -257,7 +257,7 @@ const translations: Record<Language, Record<string, string>> = {
 		'noticeTripleStarted': '3ペインモードを開始しました',
 		
 		// リボン
-		'ribbonTooltip': '2/3ペイン同期読み込み',
+		'ribbonTooltip': 'Folio: マルチカラムワークスペース',
 		
 		// 機能説明
 		'featureSync': '同期スクロール',
@@ -318,7 +318,7 @@ const translations: Record<Language, Record<string, string>> = {
 		'noticeTripleStarted': '3창 모드가 시작되었습니다',
 		
 		// 리본
-		'ribbonTooltip': '2/3창 동기화 읽기',
+		'ribbonTooltip': 'Folio: 다중 열 작업 공간',
 		
 		// 기능 설명
 		'featureSync': '동기화 스크롤',
@@ -379,7 +379,7 @@ const translations: Record<Language, Record<string, string>> = {
 		'noticeTripleStarted': 'Mode 3 volets activé',
 		
 		// Ruban
-		'ribbonTooltip': 'Lecture synchronisée 2/3 volets',
+		'ribbonTooltip': 'Folio: Espace de Travail Multi-colonnes',
 		
 		// Description des fonctionnalités
 		'featureSync': 'Défilement synchronisé',
@@ -440,7 +440,7 @@ const translations: Record<Language, Record<string, string>> = {
 		'noticeTripleStarted': '3-Fenster-Modus gestartet',
 		
 		// Ribbon
-		'ribbonTooltip': 'Synchronisiertes Lesen 2/3 Fenster',
+		'ribbonTooltip': 'Folio: Mehrspaltiger Arbeitsbereich',
 		
 		// Funktionsbeschreibung
 		'featureSync': 'Synchronisiertes Scrollen',
@@ -501,7 +501,7 @@ const translations: Record<Language, Record<string, string>> = {
 		'noticeTripleStarted': 'Modo 3 paneles iniciado',
 		
 		// Cinta
-		'ribbonTooltip': 'Lectura sincronizada 2/3 paneles',
+		'ribbonTooltip': 'Folio: Espacio de Trabajo Multicolumna',
 		
 		// Descripción de características
 		'featureSync': 'Desplazamiento sincronizado',
@@ -562,7 +562,7 @@ const translations: Record<Language, Record<string, string>> = {
 		'noticeTripleStarted': 'تم تشغيل وضع ثلاث نوافذ',
 		
 		// الشريط
-		'ribbonTooltip': 'القراءة المتزامنة 2/3 نوافذ',
+		'ribbonTooltip': 'Folio: مساحة عمل متعددة الأعمدة',
 		
 		// وصف الميزات
 		'featureSync': 'التمرير المتزامن',

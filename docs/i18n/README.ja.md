@@ -1,9 +1,11 @@
-# デュアルペイン同期表示
+# Folio
 
-[![GitHub release](https://img.shields.io/github/v/release/yourusername/obsidian-dual-pane-sync)](https://github.com/yourusername/obsidian-dual-pane-sync/releases)
-[![License](https://img.shields.io/github/license/yourusername/obsidian-dual-pane-sync)](LICENSE)
+**Folio: マルチカラムワークスペース**
 
-> [Obsidian](https://obsidian.md) 用の双方向スクロール同期機能を備えたシームレスなデュアルペインリーディング体験を提供するプラグイン。
+> シームレスな読み書きのための連続したマルチカラムワークスペース
+
+[![GitHub release](https://img.shields.io/github/v/release/yourusername/obsidian-folio)](https://github.com/yourusername/obsidian-folio/releases)
+[![License](https://img.shields.io/github/license/yourusername/obsidian-folio)](LICENSE)
 
 **[English](../../README.md)** | [简体中文](README.zh.md) | [繁體中文](README.zh-TW.md) | **日本語** | [한국어](README.ko.md) | [Français](README.fr.md) | [Deutsch](README.de.md) | [Español](README.es.md) | [العربية](README.ar.md)
 
@@ -11,7 +13,7 @@
 
 ## 📖 概要
 
-**デュアルペイン同期表示**は Obsidian で同期されたデュアルペイン読書環境を作成します：
+**Folio**は Obsidian で同期されたマルチカラム読書環境を作成します：
 
 - **左ペイン**：ネイティブ Obsidian エディター/プレビュー、完全に編集可能
 - **右ペイン**：自動分割表示、左の内容の続きを表示
@@ -51,7 +53,7 @@
 
 1. **設定** → **コミュニティプラグイン** を開く
 2. **セーフモード** をオフにする
-3. **参照** をクリックし、「デュアルペイン同期表示」を検索
+3. **参照** をクリックし、「Folio」を検索
 4. **インストール** をクリック
 5. プラグインを有効化
 
@@ -75,7 +77,7 @@
 ### ホットキー設定
 
 1. **設定** → **ホットキー** を開く
-2. 「デュアルペイン同期表示」を検索
+2. 「Folio」を検索
 3. 好みのキーを割り当てる
 
 **推奨ホットキー：**
@@ -139,7 +141,7 @@ npm run dev
 
 <div align="center">
 
-**[⬆ トップに戻る](#デュアルペイン同期表示)**
+**[⬆ トップに戻る](#folio)**
 
 Obsidian コミュニティに ❤️ を込めて作りました
 

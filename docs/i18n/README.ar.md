@@ -1,9 +1,11 @@
-# عرض اللوحات المزدوجة المتزامنة
+# Folio
 
 [![GitHub release](https://img.shields.io/github/v/release/yourusername/obsidian-dual-pane-sync)](https://github.com/yourusername/obsidian-dual-pane-sync/releases)
 [![License](https://img.shields.io/github/license/yourusername/obsidian-dual-pane-sync)](LICENSE)
 
-> إضافة لـ [Obsidian](https://obsidian.md) توفر تجربة قراءة مزدوجة اللوحات مع تمرير ثنائي الاتجاه.
+**Folio: مساحة عمل متعددة الأعمدة**
+
+مساحة عمل متعددة الأعمدة مستمرة للقراءة والتحرير السلس
 
 **[English](../../README.md)** | [简体中文](README.zh.md) | [繁體中文](README.zh-TW.md) | [日本語](README.ja.md) | [한국어](README.ko.md) | [Français](README.fr.md) | [Deutsch](README.de.md) | [Español](README.es.md) | **العربية**
 
@@ -11,7 +13,7 @@
 
 ## 📖 نظرة عامة
 
-**عرض اللوحات المزدوجة المتزامنة** ينشئ بيئة قراءة مزدوجة اللوحات متزامنة في Obsidian:
+**Folio** ينشئ بيئة قراءة مزدوجة اللوحات متزامنة في Obsidian:
 
 - **اللوحة اليسرى**: محرر Obsidian / معاينة أصلى، قابل للتحرير بالكامل
 - **اللوحة اليمنى**: عرض منقسم تلقائياً يعرض استمرار المحتوى
@@ -40,7 +42,7 @@
 
 1. افتح **الإعدادات** → **إضافات المجتمع**
 2. أوقف **وضع الأمان**
-3. انقر على **تصفح** وابحث عن "عرض اللوحات المزدوجة المتزامنة"
+3. انقر على **تصفح** وابحث عن "Folio"
 4. انقر على **تثبيت**
 5. فعل الإضافة
 
@@ -72,7 +74,7 @@
 
 <div align="center">
 
-**[⬆ العودة إلى الأعلى](#عرض-اللوحات-المزدوجة-المتزامنة)**
+**[⬆ العودة إلى الأعلى](#folio)**
 
 صُنع بـ ❤️ لمجتمع Obsidian
 

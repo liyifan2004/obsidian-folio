@@ -1,9 +1,11 @@
-# Vista de Paneles Dobles Sincronizados
+# Folio
 
 [![GitHub release](https://img.shields.io/github/v/release/yourusername/obsidian-dual-pane-sync)](https://github.com/yourusername/obsidian-dual-pane-sync/releases)
 [![License](https://img.shields.io/github/license/yourusername/obsidian-dual-pane-sync)](LICENSE)
 
-> Un plugin para [Obsidian](https://obsidian.md) que proporciona una experiencia de lectura de doble panel fluida con desplazamiento bidireccional.
+> **Folio: Espacio de Trabajo Multicolumna**
+>
+> Un espacio de trabajo multicolumna continuo para lectura y edición sin interrupciones
 
 **[English](../../README.md)** | [简体中文](README.zh.md) | [繁體中文](README.zh-TW.md) | [日本語](README.ja.md) | [한국어](README.ko.md) | [Français](README.fr.md) | [Deutsch](README.de.md) | **Español** | [العربية](README.ar.md)
 
@@ -11,7 +13,7 @@
 
 ## 📖 Descripción General
 
-**Vista de Paneles Dobles Sincronizados** crea un entorno de lectura de doble panel sincronizado en Obsidian:
+**Folio** crea un entorno de lectura de doble panel sincronizado en Obsidian:
 
 - **Panel izquierdo**: Editor/vista previa nativo de Obsidian, completamente editable
 - **Panel derecho**: Vista dividida automática que muestra la continuación del contenido
@@ -40,7 +42,7 @@
 
 1. Abra **Configuración** → **Plugins de la comunidad**
 2. Desactive el **Modo seguro**
-3. Haga clic en **Examinar** y busque "Vista de Paneles Dobles Sincronizados"
+3. Haga clic en **Examinar** y busque "Folio"
 4. Haga clic en **Instalar**
 5. Active el plugin
 
@@ -72,7 +74,7 @@
 
 <div align="center">
 
-**[⬆ Volver Arriba](#vista-de-paneles-dobles-sincronizados)**
+**[⬆ Volver Arriba](#folio)**
 
 Hecho con ❤️ para la comunidad de Obsidian
 

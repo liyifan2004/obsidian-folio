@@ -1,4 +1,8 @@
-# Dual Pane Sync View
+# Folio
+
+**Folio: Mehrspaltiger Arbeitsbereich**
+
+> Ein kontinuierlicher mehrspaltiger Arbeitsbereich für nahtloses Lesen und Bearbeiten
 
 [![GitHub release](https://img.shields.io/github/v/release/yourusername/obsidian-dual-pane-sync)](https://github.com/yourusername/obsidian-dual-pane-sync/releases)
 [![License](https://img.shields.io/github/license/yourusername/obsidian-dual-pane-sync)](LICENSE)
@@ -11,7 +15,7 @@
 
 ## 📖 Übersicht
 
-**Dual Pane Sync View** erstellt eine synchronisierte Zwei-Fenster-Leseumgebung in Obsidian:
+**Folio** erstellt eine synchronisierte Zwei-Fenster-Leseumgebung in Obsidian:
 
 - **Linker Bereich**: Nativer Obsidian-Editor/Vorschau, vollständig bearbeitbar
 - **Rechter Bereich**: Automatisch geteilte Ansicht zeigt die Fortsetzung des Inhalts
@@ -40,7 +44,7 @@
 
 1. **Einstellungen** → **Community-Plugins** öffnen
 2. **Sicherer Modus** deaktivieren
-3. Auf **Durchsuchen** klicken und "Dual Pane Sync View" suchen
+3. Auf **Durchsuchen** klicken und "Folio" suchen
 4. Auf **Installieren** klicken
 5. Plugin aktivieren
 
@@ -72,7 +76,7 @@
 
 <div align="center">
 
-**[⬆ Zurück nach Oben](#dual-pane-sync-view)**
+**[⬆ Zurück nach Oben](#folio)**
 
 Mit ❤️ für die Obsidian-Community gemacht
 
