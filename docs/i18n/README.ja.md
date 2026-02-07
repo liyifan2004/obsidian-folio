@@ -4,8 +4,8 @@
 
 > シームレスな読み書きのための連続したマルチカラムワークスペース
 
-[![GitHub release](https://img.shields.io/github/v/release/yourusername/obsidian-folio)](https://github.com/yourusername/obsidian-folio/releases)
-[![License](https://img.shields.io/github/license/yourusername/obsidian-folio)](LICENSE)
+[![GitHub release](https://img.shields.io/github/v/release/liyifan2004/obsidian-folio)](https://github.com/liyifan2004/obsidian-folio/releases)
+[![License](https://img.shields.io/github/license/liyifan2004/obsidian-folio)](LICENSE)
 
 **[English](../../README.md)** | [简体中文](README.zh.md) | [繁體中文](README.zh-TW.md) | **日本語** | [한국어](README.ko.md) | [Français](README.fr.md) | [Deutsch](README.de.md) | [Español](README.es.md) | [العربية](README.ar.md)
 
@@ -59,7 +59,7 @@
 
 ### 手動インストール
 
-1. [GitHub Releases](https://github.com/yourusername/obsidian-dual-pane-sync/releases) から最新版をダウンロード
+1. [GitHub Releases](https://github.com/liyifan2004/obsidian-folio/releases) から最新版をダウンロード
 2. ファイルをプラグインフォルダに解凍：`<vault>/.obsidian/plugins/obsidian-dual-pane-sync/`
 3. Obsidian を再読み込み
 4. **設定** → **コミュニティプラグイン** でプラグインを有効化
@@ -101,7 +101,7 @@
 
 ```bash
 # リポジトリをクローン
-git clone https://github.com/yourusername/obsidian-dual-pane-sync.git
+git clone https://github.com/liyifan2004/obsidian-folio.git
 
 # 依存関係をインストール
 npm install

@@ -105,5 +105,5 @@
 
 ## 🤝 التغذية الراجعة والدعم
 
-- 📖 [التوثيق](https://github.com/adeyahya/obsidian-tranquil-mode)
-- 🐛 [الإبلاغ عن مشكلات](https://github.com/adeyahya/obsidian-tranquil-mode/issues)
+- 📖 [التوثيق](https://github.com/liyifan2004/obsidian-folio)
+- 🐛 [الإبلاغ عن مشكلات](https://github.com/liyifan2004/obsidian-folio/issues)

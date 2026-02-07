@@ -26,6 +26,9 @@
 
 一个为流畅阅读和编辑而生的连续多栏工作空间 Obsidian 插件。
 
+**作者**: Li Yifan  
+**GitHub**: https://github.com/liyifan2004/obsidian-folio
+
 ## 支持的 9 种语言
 1. 🇺🇸 English (默认)
 2. 🇨🇳 简体中文

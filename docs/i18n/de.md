@@ -105,5 +105,5 @@ Die Sprache der Benutzeroberfläche wird automatisch aus den Obsidian-Einstellun
 
 ## 🤝 Feedback & Support
 
-- 📖 [Dokumentation](https://github.com/adeyahya/obsidian-tranquil-mode)
-- 🐛 [Probleme Melden](https://github.com/adeyahya/obsidian-tranquil-mode/issues)
+- 📖 [Dokumentation](https://github.com/liyifan2004/obsidian-folio)
+- 🐛 [Probleme Melden](https://github.com/liyifan2004/obsidian-folio/issues)

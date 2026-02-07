@@ -105,5 +105,5 @@
 
 ## 🤝 피드백 및 지원
 
-- 📖 [문서](https://github.com/adeyahya/obsidian-tranquil-mode)
-- 🐛 [문제 보고](https://github.com/adeyahya/obsidian-tranquil-mode/issues)
+- 📖 [문서](https://github.com/liyifan2004/obsidian-folio)
+- 🐛 [문제 보고](https://github.com/liyifan2004/obsidian-folio/issues)

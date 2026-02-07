@@ -1,7 +1,7 @@
 # Folio
 
-[![GitHub release](https://img.shields.io/github/v/release/yourusername/obsidian-folio)](https://github.com/yourusername/obsidian-folio/releases)
-[![License](https://img.shields.io/github/license/yourusername/obsidian-folio)](LICENSE)
+[![GitHub release](https://img.shields.io/github/v/release/liyifan2004/obsidian-folio)](https://github.com/liyifan2004/obsidian-folio/releases)
+[![License](https://img.shields.io/github/license/liyifan2004/obsidian-folio)](LICENSE)
 
 > **Folio: 多栏工作区**
 >
@@ -64,7 +64,7 @@
 
 ### 手动安装
 
-1. 从 [GitHub Releases](https://github.com/yourusername/obsidian-dual-pane-sync/releases) 下载最新版本
+1. 从 [GitHub Releases](https://github.com/liyifan2004/obsidian-folio/releases) 下载最新版本
 2. 解压文件到插件文件夹：`<vault>/.obsidian/plugins/obsidian-dual-pane-sync/`
 3. 重新加载 Obsidian
 4. 在 **设置** → **第三方插件** 中启用插件
@@ -145,7 +145,7 @@
 
 ```bash
 # 克隆仓库
-git clone https://github.com/yourusername/obsidian-dual-pane-sync.git
+git clone https://github.com/liyifan2004/obsidian-folio.git
 
 # 安装依赖
 npm install

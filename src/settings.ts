@@ -129,14 +129,14 @@ export class DualPaneSettingTab extends PluginSettingTab {
 		const linksContainer = supportContainer.createDiv('setting-item');
 		
 		const docsLink = linksContainer.createEl('a', {
-			href: 'https://github.com/adeyahya/obsidian-tranquil-mode',
+			href: 'https://github.com/liyifan2004/obsidian-folio',
 			text: '📖 ' + t('docs')
 		});
 		docsLink.style.marginRight = '16px';
 		docsLink.target = '_blank';
 
 		const feedbackLink = linksContainer.createEl('a', {
-			href: 'https://github.com/adeyahya/obsidian-tranquil-mode/issues',
+			href: 'https://github.com/liyifan2004/obsidian-folio/issues',
 			text: '🐛 ' + t('feedback')
 		});
 		feedbackLink.target = '_blank';

@@ -105,5 +105,5 @@ La langue de l'interface est automatiquement détectée depuis les paramètres O
 
 ## 🤝 Retours et Support
 
-- 📖 [Documentation](https://github.com/adeyahya/obsidian-tranquil-mode)
-- 🐛 [Signaler des Problèmes](https://github.com/adeyahya/obsidian-tranquil-mode/issues)
+- 📖 [Documentation](https://github.com/liyifan2004/obsidian-folio)
+- 🐛 [Signaler des Problèmes](https://github.com/liyifan2004/obsidian-folio/issues)

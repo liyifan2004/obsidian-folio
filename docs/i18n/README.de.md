@@ -4,8 +4,8 @@
 
 > Ein kontinuierlicher mehrspaltiger Arbeitsbereich für nahtloses Lesen und Bearbeiten
 
-[![GitHub release](https://img.shields.io/github/v/release/yourusername/obsidian-dual-pane-sync)](https://github.com/yourusername/obsidian-dual-pane-sync/releases)
-[![License](https://img.shields.io/github/license/yourusername/obsidian-dual-pane-sync)](LICENSE)
+[![GitHub release](https://img.shields.io/github/v/release/liyifan2004/obsidian-folio)](https://github.com/liyifan2004/obsidian-folio/releases)
+[![License](https://img.shields.io/github/license/liyifan2004/obsidian-folio)](LICENSE)
 
 > Ein Plugin für [Obsidian](https://obsidian.md), das ein nahtloses Zwei-Fenster-Leseerlebnis mit bidirektionalem Scrollen bietet.
 

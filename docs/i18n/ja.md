@@ -105,5 +105,5 @@
 
 ## 🤝 フィードバックとサポート
 
-- 📖 [ドキュメント](https://github.com/adeyahya/obsidian-tranquil-mode)
-- 🐛 [問題を報告](https://github.com/adeyahya/obsidian-tranquil-mode/issues)
+- 📖 [ドキュメント](https://github.com/liyifan2004/obsidian-folio)
+- 🐛 [問題を報告](https://github.com/liyifan2004/obsidian-folio/issues)

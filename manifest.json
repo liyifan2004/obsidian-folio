@@ -4,8 +4,8 @@
 	"version": "1.0.0",
 	"minAppVersion": "0.15.0",
 	"description": "A continuous multi-column workspace for seamless reading and editing",
-	"author": "Your Name",
-	"authorUrl": "",
+	"author": "Li Yifan",
+	"authorUrl": "https://github.com/liyifan2004",
 	"fundingUrl": "",
 	"isDesktopOnly": false
 }

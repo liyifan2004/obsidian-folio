@@ -1,7 +1,7 @@
 # Folio
 
-[![GitHub release](https://img.shields.io/github/v/release/yourusername/obsidian-dual-pane-sync)](https://github.com/yourusername/obsidian-dual-pane-sync/releases)
-[![License](https://img.shields.io/github/license/yourusername/obsidian-dual-pane-sync)](LICENSE)
+[![GitHub release](https://img.shields.io/github/v/release/liyifan2004/obsidian-folio)](https://github.com/liyifan2004/obsidian-folio/releases)
+[![License](https://img.shields.io/github/license/liyifan2004/obsidian-folio)](LICENSE)
 
 > **Folio: 다중 열 작업 공간**
 >

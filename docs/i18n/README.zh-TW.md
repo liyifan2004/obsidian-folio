@@ -4,8 +4,8 @@
 
 > 為流暢閱讀和編輯而生的連續多欄工作空間
 
-[![GitHub release](https://img.shields.io/github/v/release/yourusername/obsidian-folio)](https://github.com/yourusername/obsidian-folio/releases)
-[![License](https://img.shields.io/github/license/yourusername/obsidian-folio)](LICENSE)
+[![GitHub release](https://img.shields.io/github/v/release/liyifan2004/obsidian-folio)](https://github.com/liyifan2004/obsidian-folio/releases)
+[![License](https://img.shields.io/github/license/liyifan2004/obsidian-folio)](LICENSE)
 
 **[English](../../README.md)** | [简体中文](README.zh.md) | **繁體中文** | [日本語](README.ja.md) | [한국어](README.ko.md) | [Français](README.fr.md) | [Deutsch](README.de.md) | [Español](README.es.md) | [العربية](README.ar.md)
 
@@ -55,7 +55,7 @@
 
 ### 手動安裝
 
-1. 從 [GitHub Releases](https://github.com/yourusername/obsidian-dual-pane-sync/releases) 下載最新版本
+1. 從 [GitHub Releases](https://github.com/liyifan2004/obsidian-folio/releases) 下載最新版本
 2. 解壓縮檔案到挿件資料夾：`<vault>/.obsidian/plugins/obsidian-dual-pane-sync/`
 3. 重新載入 Obsidian
 4. 在 **設定** → **第三方挿件** 中啟用挿件

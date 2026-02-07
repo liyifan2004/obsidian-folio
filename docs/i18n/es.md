@@ -105,5 +105,5 @@ El idioma de la interfaz se detecta automáticamente desde los ajustes de Obsidi
 
 ## 🤝 Comentarios y Soporte
 
-- 📖 [Documentación](https://github.com/adeyahya/obsidian-tranquil-mode)
-- 🐛 [Reportar Problemas](https://github.com/adeyahya/obsidian-tranquil-mode/issues)
+- 📖 [Documentación](https://github.com/liyifan2004/obsidian-folio)
+- 🐛 [Reportar Problemas](https://github.com/liyifan2004/obsidian-folio/issues)

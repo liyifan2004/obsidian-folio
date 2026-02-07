@@ -105,5 +105,5 @@
 
 ## 🤝 回饋與支援
 
-- 📖 [文件](https://github.com/adeyahya/obsidian-tranquil-mode)
-- 🐛 [回報問題](https://github.com/adeyahya/obsidian-tranquil-mode/issues)
+- 📖 [文件](https://github.com/liyifan2004/obsidian-folio)
+- 🐛 [回報問題](https://github.com/liyifan2004/obsidian-folio/issues)

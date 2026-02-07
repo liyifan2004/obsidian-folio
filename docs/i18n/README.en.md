@@ -2,7 +2,7 @@
 
 **Folio: Multicolumn Workspace**
 
-[![GitHub release](https://img.shields.io/github/v/release/adeyahya/obsidian-tranquil-mode)](https://github.com/adeyahya/obsidian-tranquil-mode/releases)
+[![GitHub release](https://img.shields.io/github/v/release/liyifan2004/obsidian-folio)](https://github.com/liyifan2004/obsidian-folio/releases)
 [![Obsidian plugin](https://img.shields.io/badge/Obsidian-Plugin-purple)](https://obsidian.md)
 
 A continuous multi-column workspace for seamless reading and editing.
