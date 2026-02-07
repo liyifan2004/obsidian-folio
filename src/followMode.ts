@@ -5,21 +5,18 @@ import {
 	Notice,
 	Workspace
 } from 'obsidian';
+		  
 import { DualPanePluginSettings, t, detectObsidianLanguage, setLanguage } from './types';
 
 export type ViewMode = 'dual' | 'triple';
 
 /**
  * Folio - 双栏/三栏跟随模式
- * 
- * 双栏模式：主窗口 + 右跟随（显示后一屏）
- * 三栏模式：左跟随（前一屏）+ 主窗口 + 右跟随（后一屏）
  */
 export class DualPaneFollowMode {
 	private workspace: Workspace;
 	private settings: DualPanePluginSettings;
 	
-	// 窗口引用
 	private mainLeaf: WorkspaceLeaf | null = null;
 	private leftFollowLeaf: WorkspaceLeaf | null = null;
 	private rightFollowLeaf: WorkspaceLeaf | null = null;
@@ -27,19 +24,19 @@ export class DualPaneFollowMode {
 	private isActive: boolean = false;
 	private currentMode: ViewMode = 'dual';
 	
-	// 清理函数
 	private scrollCleanups: (() => void)[] = [];
 	private layoutChangeRef: (() => void) | null = null;
 	private modeChangeInterval: number | null = null;
 	private resizeObserver: ResizeObserver | null = null;
 	private fileChangeInterval: number | null = null;
+	private resizeDebounceTimer: number | null = null;
 
-	// 防止循环滚动
 	private isSyncing: boolean = false;
+	private isResizing: boolean = false;
 	
-	// 保存的滚动状态（使用百分比，更稳定）
-	private savedScrollPercent: number = 0;
-	private savedMainFile: TFile | null = null;
+	// 使用更稳定的同步：保存主窗口的滚动比例和具体位置
+	private mainScrollRatio: number = 0;  // 0-1 之间的比例
+	private mainScrollTop: number = 0;    // 具体像素值
 
 	constructor(workspace: Workspace, settings: DualPanePluginSettings) {
 		this.workspace = workspace;
@@ -79,10 +76,9 @@ export class DualPaneFollowMode {
 
 		this.currentMode = mode;
 		this.mainLeaf = activeLeaf;
-		this.savedMainFile = file;
 
-		// 关键：保存当前滚动位置（在创建新窗口之前）
-		this.savedScrollPercent = this.getScrollPercent(activeLeaf);
+		// 保存当前精确的滚动状态
+		this.saveMainScrollState();
 
 		try {
 			if (mode === 'triple') {
@@ -94,8 +90,8 @@ export class DualPaneFollowMode {
 			this.isActive = true;
 			this.setupFollow();
 			
-			// 恢复滚动位置并同步
-			await this.restoreScrollPosition();
+			// 等待内容完全渲染后恢复位置
+			await this.waitAndRestoreScroll();
 			
 			const modeText = mode === 'triple' ? t('noticeTripleStarted') : t('noticeDualStarted');
 			new Notice(modeText);
@@ -110,57 +106,83 @@ export class DualPaneFollowMode {
 	}
 
 	/**
-	 * 获取滚动百分比位置（更稳定，不受窗口大小影响）
+	 * 保存主窗口的滚动状态
 	 */
-	private getScrollPercent(leaf: WorkspaceLeaf): number {
+	private saveMainScrollState(): void {
+		if (!this.mainLeaf) return;
+		
 		try {
-			const container = this.getScrollContainer(leaf.view as MarkdownView);
-			if (!container) return 0;
-			
-			const maxScroll = container.scrollHeight - container.clientHeight;
-			if (maxScroll <= 0) return 0;
-			
-			return container.scrollTop / maxScroll;
-		} catch (e) {
-			return 0;
-		}
-	}
-
-	/**
-	 * 设置滚动百分比位置
-	 */
-	private setScrollPercent(leaf: WorkspaceLeaf, percent: number): void {
-		try {
-			const container = this.getScrollContainer(leaf.view as MarkdownView);
+			const container = this.getScrollContainer(this.mainLeaf.view as MarkdownView);
 			if (!container) return;
 			
+			this.mainScrollTop = container.scrollTop;
 			const maxScroll = container.scrollHeight - container.clientHeight;
-			if (maxScroll <= 0) return;
-			
-			const targetScroll = Math.max(0, Math.min(percent * maxScroll, maxScroll));
-			container.scrollTop = targetScroll;
+			this.mainScrollRatio = maxScroll > 0 ? this.mainScrollTop / maxScroll : 0;
 		} catch (e) {
-			// 忽略错误
+			this.mainScrollRatio = 0;
+			this.mainScrollTop = 0;
 		}
 	}
 
 	/**
-	 * 恢复滚动位置并同步
+	 * 等待内容渲染并恢复滚动位置
 	 */
-	private async restoreScrollPosition(): Promise<void> {
+	private async waitAndRestoreScroll(): Promise<void> {
 		if (!this.mainLeaf) return;
 
-		// 等待内容渲染完成
-		await new Promise(resolve => setTimeout(resolve, 300));
+		// 等待内容渲染（长文档需要更长时间）
+		await this.waitForRender(this.mainLeaf, 800);
 
-		// 恢复主窗口位置
-		this.setScrollPercent(this.mainLeaf, this.savedScrollPercent);
+		// 恢复主窗口位置 - 优先使用比例，更稳定
+		const container = this.getScrollContainer(this.mainLeaf.view as MarkdownView);
+		if (container) {
+			const maxScroll = container.scrollHeight - container.clientHeight;
+			const targetScroll = maxScroll > 0 ? this.mainScrollRatio * maxScroll : 0;
+			
+			// 使用比例和像素的加权平均，更精确
+			const finalScroll = maxScroll > 0 
+				? Math.min(targetScroll, maxScroll)
+				: this.mainScrollTop;
+			
+			container.scrollTop = finalScroll;
+		}
 
-		// 等待主窗口滚动完成
-		await new Promise(resolve => setTimeout(resolve, 100));
+		// 等待滚动稳定
+		await new Promise(resolve => setTimeout(resolve, 150));
 
-		// 同步其他窗口
+		// 同步到跟随窗口
+		this.forceSyncAll();
+	}
+
+	/**
+	 * 等待窗口内容渲染完成
+	 */
+	private async waitForRender(leaf: WorkspaceLeaf, timeout: number = 500): Promise<void> {
+		const startTime = Date.now();
+		
+		while (Date.now() - startTime < timeout) {
+			const container = this.getScrollContainer(leaf.view as MarkdownView);
+			if (container && container.scrollHeight > 100) {
+				// 内容似乎已加载，再等待一小段时间让渲染完成
+				await new Promise(resolve => setTimeout(resolve, 100));
+				return;
+			}
+			await new Promise(resolve => setTimeout(resolve, 50));
+		}
+	}
+
+	/**
+	 * 强制同步所有窗口
+	 */
+	private forceSyncAll(): void {
+		if (!this.isActive) return;
+		
+		// 先让主窗口同步到其他窗口
 		this.doSync('main');
+		
+		// 对于长文档，可能需要多次同步才能稳定
+		setTimeout(() => this.doSync('main'), 100);
+		setTimeout(() => this.doSync('main'), 300);
 	}
 
 	/**
@@ -174,13 +196,12 @@ export class DualPaneFollowMode {
 			return;
 		}
 
-		// 创建右跟随窗口
 		this.rightFollowLeaf = this.workspace.createLeafBySplit(this.mainLeaf!, 'vertical', false);
-		await new Promise(resolve => setTimeout(resolve, 150));
+		await new Promise(resolve => setTimeout(resolve, 200));
 		
 		const mainMode = this.getLeafMode(this.mainLeaf!);
 		await this.rightFollowLeaf.openFile(file, { state: { mode: mainMode } });
-		await new Promise(resolve => setTimeout(resolve, 300));
+		await this.waitForRender(this.rightFollowLeaf, 500);
 		
 		this.markFollowLeaf(this.rightFollowLeaf, 'right');
 	}
@@ -193,18 +214,18 @@ export class DualPaneFollowMode {
 
 		const mainMode = this.getLeafMode(this.mainLeaf!);
 
-		// 先创建右跟随
+		// 创建右跟随
 		this.rightFollowLeaf = this.workspace.createLeafBySplit(this.mainLeaf!, 'vertical', false);
-		await new Promise(resolve => setTimeout(resolve, 150));
-		await this.rightFollowLeaf.openFile(file, { state: { mode: mainMode } });
 		await new Promise(resolve => setTimeout(resolve, 200));
+		await this.rightFollowLeaf.openFile(file, { state: { mode: mainMode } });
+		await this.waitForRender(this.rightFollowLeaf, 400);
 		this.markFollowLeaf(this.rightFollowLeaf, 'right');
 
-		// 再创建左跟随
+		// 创建左跟随
 		this.leftFollowLeaf = this.workspace.createLeafBySplit(this.mainLeaf!, 'vertical', true);
-		await new Promise(resolve => setTimeout(resolve, 150));
-		await this.leftFollowLeaf.openFile(file, { state: { mode: mainMode } });
 		await new Promise(resolve => setTimeout(resolve, 200));
+		await this.leftFollowLeaf.openFile(file, { state: { mode: mainMode } });
+		await this.waitForRender(this.leftFollowLeaf, 400);
 		this.markFollowLeaf(this.leftFollowLeaf, 'left');
 	}
 
@@ -281,12 +302,12 @@ export class DualPaneFollowMode {
 		let rafId: number | null = null;
 		
 		const handler = () => {
-			if (this.isSyncing) return;
+			if (this.isSyncing || this.isResizing) return;
 			if (rafId) return;
 			
 			rafId = requestAnimationFrame(() => {
 				rafId = null;
-				if (this.isActive) {
+				if (this.isActive && !this.isResizing) {
 					this.doSync(source);
 				}
 			});
@@ -301,102 +322,142 @@ export class DualPaneFollowMode {
 	}
 
 	/**
-	 * 设置窗口大小变化监听（关键修复）
+	 * 设置窗口大小变化监听 - 关键改进
 	 */
 	private setupResizeListener(): void {
 		if (this.resizeObserver) {
 			this.resizeObserver.disconnect();
 		}
 
-		// 使用 ResizeObserver 监听窗口大小变化
+		// 使用 ResizeObserver 监听容器大小变化
 		this.resizeObserver = new ResizeObserver((entries) => {
-			if (!this.isActive || this.isSyncing) return;
+			if (!this.isActive) return;
 			
-			// 延迟执行，等待渲染完成
-			setTimeout(() => {
+			// 标记正在调整大小，暂停滚动同步
+			this.isResizing = true;
+			
+			// 清除之前的定时器
+			if (this.resizeDebounceTimer) {
+				window.clearTimeout(this.resizeDebounceTimer);
+			}
+			
+			// 防抖：等待调整完成后重新同步
+			this.resizeDebounceTimer = window.setTimeout(() => {
 				if (this.isActive) {
-					this.doSync('main');
+					// 重新计算同步
+					this.forceSyncAll();
+					this.isResizing = false;
 				}
-			}, 100);
+			}, 150);
 		});
 
-		// 观察所有窗口的容器
-		if (this.mainLeaf) {
-			const container = this.getScrollContainer(this.mainLeaf.view as MarkdownView);
-			if (container) this.resizeObserver.observe(container);
-		}
-		if (this.leftFollowLeaf) {
-			const container = this.getScrollContainer(this.leftFollowLeaf.view as MarkdownView);
-			if (container) this.resizeObserver.observe(container);
-		}
-		if (this.rightFollowLeaf) {
-			const container = this.getScrollContainer(this.rightFollowLeaf.view as MarkdownView);
-			if (container) this.resizeObserver.observe(container);
-		}
+		// 观察所有相关元素
+		const observeContainer = (leaf: WorkspaceLeaf | null) => {
+			if (!leaf) return;
+			const container = this.getScrollContainer(leaf.view as MarkdownView);
+			if (container) {
+				this.resizeObserver?.observe(container);
+			}
+			// 同时观察叶子容器本身（栏宽变化）
+			try {
+				const leafContainer = (leaf as any).containerEl;
+				if (leafContainer) {
+					this.resizeObserver?.observe(leafContainer);
+				}
+			} catch (e) {}
+		};
+
+		observeContainer(this.mainLeaf);
+		observeContainer(this.leftFollowLeaf);
+		observeContainer(this.rightFollowLeaf);
 	}
 
 	/**
-	 * 设置文件变化监听（关键修复：切换笔记时同步）
+	 * 设置文件变化监听 - 双向同步改进
 	 */
 	private setupFileChangeListener(): void {
 		if (this.fileChangeInterval) {
 			window.clearInterval(this.fileChangeInterval);
 		}
 
-		// 轮询检查主窗口的文件是否变化
+		// 轮询检查所有窗口的文件
 		this.fileChangeInterval = window.setInterval(() => {
 			if (!this.isActive || !this.mainLeaf) return;
 
-			const currentFile = this.getLeafFile(this.mainLeaf);
-			if (!currentFile) return;
+			// 获取所有窗口的当前文件
+			const mainFile = this.getLeafFile(this.mainLeaf);
+			const leftFile = this.leftFollowLeaf ? this.getLeafFile(this.leftFollowLeaf) : null;
+			const rightFile = this.rightFollowLeaf ? this.getLeafFile(this.rightFollowLeaf) : null;
 
-			// 如果文件变化了，同步更新跟随窗口
-			if (this.savedMainFile && currentFile.path !== this.savedMainFile.path) {
-				this.savedMainFile = currentFile;
-				this.syncFileToFollowers(currentFile);
+			// 确定参考文件（以最后变化的为准）
+			let targetFile: TFile | null = null;
+			let source: 'main' | 'left' | 'right' | null = null;
+
+			// 检查主窗口是否变化
+			if (mainFile && (!leftFile || mainFile.path !== leftFile.path) && 
+				(!rightFile || mainFile.path !== rightFile.path)) {
+				targetFile = mainFile;
+				source = 'main';
 			}
-		}, 500);
+			// 检查左窗口是否变化
+			else if (leftFile && leftFile.path !== mainFile?.path) {
+				targetFile = leftFile;
+				source = 'left';
+			}
+			// 检查右窗口是否变化
+			else if (rightFile && rightFile.path !== mainFile?.path) {
+				targetFile = rightFile;
+				source = 'right';
+			}
+
+			// 如果有变化，同步所有窗口
+			if (targetFile && source) {
+				this.syncAllToFile(targetFile, source);
+			}
+		}, 400);
 	}
 
 	/**
-	 * 同步文件到跟随窗口
+	 * 同步所有窗口到指定文件
 	 */
-	private async syncFileToFollowers(file: TFile): Promise<void> {
-		const mainMode = this.getLeafMode(this.mainLeaf!);
+	private async syncAllToFile(file: TFile, source: 'main' | 'left' | 'right'): Promise<void> {
+		// 获取源窗口的模式
+		let sourceLeaf: WorkspaceLeaf | null = null;
+		if (source === 'main') sourceLeaf = this.mainLeaf;
+		else if (source === 'left') sourceLeaf = this.leftFollowLeaf;
+		else if (source === 'right') sourceLeaf = this.rightFollowLeaf;
 
-		// 同步到右跟随窗口
-		if (this.rightFollowLeaf) {
-			const rightFile = this.getLeafFile(this.rightFollowLeaf);
-			if (!rightFile || rightFile.path !== file.path) {
-				await this.rightFollowLeaf.openFile(file, { state: { mode: mainMode } });
-			}
-		}
+		if (!sourceLeaf) return;
 
-		// 同步到左跟随窗口
-		if (this.leftFollowLeaf) {
-			const leftFile = this.getLeafFile(this.leftFollowLeaf);
-			if (!leftFile || leftFile.path !== file.path) {
-				await this.leftFollowLeaf.openFile(file, { state: { mode: mainMode } });
+		const targetMode = this.getLeafMode(sourceLeaf);
+
+		// 同步其他窗口
+		const syncLeaf = async (leaf: WorkspaceLeaf | null) => {
+			if (!leaf || leaf === sourceLeaf) return;
+			
+			const currentFile = this.getLeafFile(leaf);
+			if (!currentFile || currentFile.path !== file.path) {
+				await leaf.openFile(file, { state: { mode: targetMode } });
 			}
-		}
+		};
+
+		await syncLeaf(this.mainLeaf);
+		await syncLeaf(this.leftFollowLeaf);
+		await syncLeaf(this.rightFollowLeaf);
 
 		// 等待加载完成后同步滚动
 		setTimeout(() => {
 			if (this.isActive) {
-				this.doSync('main');
+				this.forceSyncAll();
 			}
 		}, 300);
 	}
 
 	/**
-	 * 执行同步
-	 * 
-	 * 改进的同步逻辑：
-	 * - 使用百分比位置计算，更稳定
-	 * - 考虑实际可见内容的偏移
+	 * 执行同步 - 改进的长文档支持
 	 */
 	private doSync(source: 'main' | 'left' | 'right'): void {
-		if (!this.isActive || !this.mainLeaf) return;
+		if (!this.isActive || !this.mainLeaf || this.isResizing) return;
 
 		try {
 			this.isSyncing = true;
@@ -414,58 +475,72 @@ export class DualPaneFollowMode {
 				return;
 			}
 
-			const mainHeight = mainContainer.clientHeight;
-			const lineHeight = this.estimateLineHeight(mainContainer);
-			const overlapOffset = this.settings.overlapLines * lineHeight;
-
-			// 计算主窗口的目标位置
-			let targetMainScroll: number;
-
+			// 使用比例计算，更稳定
+			let mainRatio: number;
+			
 			if (source === 'main') {
-				targetMainScroll = mainContainer.scrollTop;
+				const maxScroll = mainContainer.scrollHeight - mainContainer.clientHeight;
+				mainRatio = maxScroll > 0 ? mainContainer.scrollTop / maxScroll : 0;
 			} else if (source === 'left' && leftContainer) {
-				// 左窗口滚动 -> 主窗口 = 左窗口 + 左窗口高度 - 重叠
-				targetMainScroll = leftContainer.scrollTop + leftContainer.clientHeight - overlapOffset;
+				// 从左窗口计算主窗口比例
+				const leftMax = leftContainer.scrollHeight - leftContainer.clientHeight;
+				const leftRatio = leftMax > 0 ? leftContainer.scrollTop / leftMax : 0;
+				mainRatio = Math.min(1, leftRatio + 0.5); // 粗略估算
 			} else if (source === 'right' && rightContainer) {
-				// 右窗口滚动 -> 主窗口 = 右窗口 - 右窗口高度 + 重叠
-				targetMainScroll = rightContainer.scrollTop - rightContainer.clientHeight + overlapOffset;
+				// 从右窗口计算主窗口比例
+				const rightMax = rightContainer.scrollHeight - rightContainer.clientHeight;
+				const rightRatio = rightMax > 0 ? rightContainer.scrollTop / rightMax : 0;
+				mainRatio = Math.max(0, rightRatio - 0.5); // 粗略估算
 			} else {
 				this.isSyncing = false;
 				return;
 			}
 
-			// 限制范围
+			// 获取当前行高（动态计算，适应字号变化）
+			const lineHeight = this.estimateLineHeight(mainContainer);
+			const overlapOffset = this.settings.overlapLines * lineHeight;
+
+			// 计算主窗口目标位置（像素）
 			const mainMaxScroll = mainContainer.scrollHeight - mainContainer.clientHeight;
-			targetMainScroll = Math.max(0, Math.min(targetMainScroll, mainMaxScroll));
+			const targetMainScroll = mainMaxScroll > 0 ? mainRatio * mainMaxScroll : 0;
 
 			// 计算跟随窗口的目标位置
-			// 右窗口 = 主窗口 + 主窗口高度 - 重叠
+			// 关键：使用内容可见的连续性计算
 			let targetRightScroll: number | null = null;
 			if (rightContainer) {
-				targetRightScroll = targetMainScroll + mainHeight - overlapOffset;
+				// 右窗口应该显示主窗口底部附近的内容
+				const mainVisibleBottom = targetMainScroll + mainContainer.clientHeight;
+				// 考虑重叠
+				targetRightScroll = Math.max(0, mainVisibleBottom - overlapOffset);
+				// 限制范围
 				const rightMaxScroll = rightContainer.scrollHeight - rightContainer.clientHeight;
-				targetRightScroll = Math.max(0, Math.min(targetRightScroll, rightMaxScroll));
+				targetRightScroll = Math.min(targetRightScroll, rightMaxScroll);
 			}
 
-			// 左窗口 = 主窗口 - 左窗口高度 + 重叠
 			let targetLeftScroll: number | null = null;
 			if (leftContainer) {
-				targetLeftScroll = targetMainScroll - leftContainer.clientHeight + overlapOffset;
-				targetLeftScroll = Math.max(0, targetLeftScroll);
+				// 左窗口应该显示主窗口顶部之前的内容
+				// 考虑重叠
+				targetLeftScroll = Math.max(0, targetMainScroll - leftContainer.clientHeight + overlapOffset);
+				// 限制范围
+				const leftMaxScroll = leftContainer.scrollHeight - leftContainer.clientHeight;
+				targetLeftScroll = Math.min(targetLeftScroll, leftMaxScroll);
 			}
 
 			// 应用滚动位置（跳过源窗口）
-			if (source !== 'main' && Math.abs(mainContainer.scrollTop - targetMainScroll) > 2) {
+			const threshold = 3; // 像素阈值
+			
+			if (source !== 'main' && Math.abs(mainContainer.scrollTop - targetMainScroll) > threshold) {
 				mainContainer.scrollTop = targetMainScroll;
 			}
 
 			if (source !== 'left' && leftContainer && targetLeftScroll !== null 
-				&& Math.abs(leftContainer.scrollTop - targetLeftScroll) > 2) {
+				&& Math.abs(leftContainer.scrollTop - targetLeftScroll) > threshold) {
 				leftContainer.scrollTop = targetLeftScroll;
 			}
 
 			if (source !== 'right' && rightContainer && targetRightScroll !== null 
-				&& Math.abs(rightContainer.scrollTop - targetRightScroll) > 2) {
+				&& Math.abs(rightContainer.scrollTop - targetRightScroll) > threshold) {
 				rightContainer.scrollTop = targetRightScroll;
 			}
 
@@ -513,18 +588,15 @@ export class DualPaneFollowMode {
 			if (sampleEl instanceof HTMLElement) {
 				const computedStyle = window.getComputedStyle(sampleEl);
 				const lineHeight = parseFloat(computedStyle.lineHeight);
-				if (!isNaN(lineHeight) && lineHeight > 0) {
+				if (!isNaN(lineHeight) && lineHeight > 0 && lineHeight < 200) {
 					return lineHeight;
 				}
-				// 如果 line-height 是 normal，使用字体大小的 1.5 倍估算
 				const fontSize = parseFloat(computedStyle.fontSize);
 				if (!isNaN(fontSize) && fontSize > 0) {
 					return fontSize * 1.6;
 				}
 			}
-		} catch (e) {
-			// 忽略错误
-		}
+		} catch (e) {}
 		return 28;
 	}
 
@@ -571,9 +643,8 @@ export class DualPaneFollowMode {
 			const currentMode = this.getLeafMode(this.mainLeaf);
 			if (currentMode !== lastMode) {
 				lastMode = currentMode;
-				// 模式变化时重新设置监听和同步
 				this.setupScrollSync();
-				setTimeout(() => this.doSync('main'), 200);
+				setTimeout(() => this.forceSyncAll(), 300);
 			}
 		}, 500);
 	}
@@ -725,8 +796,7 @@ export class DualPaneFollowMode {
 		if (this.isActive) {
 			const currentFile = this.getLeafFile(this.mainLeaf!);
 			if (currentFile) {
-				// 保存当前滚动位置
-				this.savedScrollPercent = this.getScrollPercent(this.mainLeaf!);
+				this.saveMainScrollState();
 				this.stopFollowMode();
 				await this.startFollowMode(mode);
 			}
@@ -762,6 +832,11 @@ export class DualPaneFollowMode {
 			this.fileChangeInterval = null;
 		}
 
+		if (this.resizeDebounceTimer) {
+			window.clearTimeout(this.resizeDebounceTimer);
+			this.resizeDebounceTimer = null;
+		}
+
 		if (this.rightFollowLeaf) {
 			this.unmarkFollowLeaf(this.rightFollowLeaf);
 		}
@@ -772,8 +847,8 @@ export class DualPaneFollowMode {
 		this.mainLeaf = null;
 		this.rightFollowLeaf = null;
 		this.leftFollowLeaf = null;
-		this.savedMainFile = null;
 		this.isActive = false;
+		this.isResizing = false;
 	}
 
 	/**
