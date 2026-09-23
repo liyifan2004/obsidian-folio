@@ -19,3 +19,8 @@ Thumbs.db
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# AI assistant working folders (memory, scratch, session data) — never commit
+.workbuddy/
+.claude/
+.agents/
