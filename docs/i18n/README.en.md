@@ -7,10 +7,8 @@
 
 A continuous multi-column workspace for seamless reading and editing.
 
-![Dual Pane Mode](assets/dual-pane-mode.png)
 *Dual Pane Mode: Current view + Next screen*
 
-![Triple Pane Mode](assets/triple-pane-mode.png)
 *Triple Pane Mode: Previous + Current + Next screens*
 
 ## 🌐 Languages
@@ -131,15 +129,12 @@ Interface language is automatically detected from Obsidian settings. Supports:
 ## 📸 Screenshots
 
 ### Edit Mode
-![Edit Mode](assets/edit-mode.png)
 *Dual pane in Edit mode with synchronized scrolling*
 
 ### Preview Mode
-![Preview Mode](assets/preview-mode.png)
 *Dual pane in Preview mode*
 
 ### Triple Pane Context
-![Triple Pane](assets/triple-pane.png)
 *Triple pane showing full context awareness*
 
 ## 🔧 Compatibility
@@ -151,8 +146,8 @@ Interface language is automatically detected from Obsidian settings. Supports:
 
 ## 🤝 Feedback & Support
 
-- 📖 [Documentation](https://github.com/adeyahya/obsidian-folio)
-- 🐛 [Report Issues](https://github.com/adeyahya/obsidian-folio/issues)
+- 📖 [Documentation](https://github.com/liyifan2004/obsidian-folio)
+- 🐛 [Report Issues](https://github.com/liyifan2004/obsidian-folio/issues)
 - ⭐ Star the repo if you find it useful!
 
 ## 📜 License
