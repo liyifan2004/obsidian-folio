@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/icon.png" alt="Folio icon" width="96" />
+</p>
+
 # Folio
 
 [![GitHub release](https://img.shields.io/github/v/release/liyifan2004/obsidian-folio?style=flat-square)](https://github.com/liyifan2004/obsidian-folio/releases)
