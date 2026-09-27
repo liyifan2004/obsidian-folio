@@ -27,10 +27,14 @@ Folio's interface supports 9 languages, auto-detected from your Obsidian setting
 - Synchronized scrolling
 - Perfect for continuous reading
 
+![Dual pane mode in action](assets/dual-pane.gif)
+
 ### 📚 Triple Pane Mode
 - **Previous Screen** on the left, **Primary View** in the center, **Next Screen** on the right
 - See what comes before and after your current position
 - Complete context awareness while editing
+
+![Triple pane mode in action](assets/triple-pane.gif)
 
 ### ⚡ Smart Synchronization
 - Real-time bidirectional scroll sync
@@ -95,6 +99,8 @@ Adjust the number of overlapping lines between panes (0–10 lines):
 
 ### Language
 Interface language is automatically detected from Obsidian settings (English, 简体中文 / 繁體中文, 日本語, 한국어, Français, Deutsch, Español, العربية).
+
+![Folio settings page](assets/settings.png)
 
 ## 🎯 Use Cases
 
