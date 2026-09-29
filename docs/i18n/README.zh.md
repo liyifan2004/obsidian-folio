@@ -1,238 +1,135 @@
 # Folio
 
-[![GitHub release](https://img.shields.io/github/v/release/liyifan2004/obsidian-folio)](https://github.com/liyifan2004/obsidian-folio/releases)
-[![License](https://img.shields.io/github/license/liyifan2004/obsidian-folio)](LICENSE)
+[![GitHub release](https://img.shields.io/github/v/release/liyifan2004/obsidian-folio?style=flat-square)](https://github.com/liyifan2004/obsidian-folio/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](../../LICENSE)
 
-> **Folio: 多栏工作区**
->
-> 为流畅阅读和编辑而生的连续多栏工作空间
+[English](../../README.md) | [简体中文](README.zh.md) | [繁體中文](README.zh-TW.md) | [日本語](README.ja.md) | [한국어](README.ko.md) | [Français](README.fr.md) | [Deutsch](README.de.md) | [Español](README.es.md) | [العربية](README.ar.md)
 
-**[English](../../README.md)** | **简体中文** | [繁體中文](README.zh-TW.md) | [日本語](README.ja.md) | [한국어](README.ko.md) | [Français](README.fr.md) | [Deutsch](README.de.md) | [Español](README.es.md) | [العربية](README.ar.md)
+**Folio：多栏工作区** —— Obsidian 中为无缝阅读与编辑而生的连续多栏工作空间。
 
----
-
-## 📖 概述
-
-**Folio** 在 Obsidian 中创建一个同步的多栏阅读环境：
-
-- **左侧窗口**：原生 Obsidian 编辑器/预览，完全可编辑
-- **右侧窗口**：自动分割显示，接续左侧内容
-- **双向滚动**：滚动任意一侧，另一侧自动跟随
-- **模式自适应**：无缝切换编辑和预览模式
-
-非常适合阅读长文档、对比不同章节，或编辑时参考前文内容。
-
----
+- **双栏模式**：当前视图 + 下一屏，滚动同步
+- **三栏模式**：上一屏 + 当前 + 下一屏，编辑时拥有完整上下文
+- 编辑、预览、源码模式均可用
 
 ## ✨ 功能特性
 
-### 🔄 双向同步
-- 滚动左侧窗口 → 右侧窗口跟随显示接续内容
-- 滚动右侧窗口 → 左侧窗口跟随显示前文内容
-- 流畅的 60fps 滚动性能
+### 📖 双栏模式
+- 左侧为**主视图**，右侧为**下一屏**
+- 滚动同步
+- 适合连续阅读
 
-### 📝 完全原生编辑
-- 左侧窗口保持完全可编辑，使用所有 Obsidian 功能
-- 所有插件正常工作（Vim 模式、主题等）
-- 语法高亮和实时预览
+![双栏模式演示](../../assets/dual-pane.gif)
 
-### 🎨 自适应模式切换
-- 左侧窗口切换编辑/预览模式 → 右侧窗口自动适应
-- 同步体验不会中断
+### 📚 三栏模式
+- 左侧为**上一屏**，中间为**主视图**，右侧为**下一屏**
+- 当前位置的前后内容一目了然
+- 编辑时拥有完整上下文
 
-### ⚙️ 可自定义重合
-- 调整窗口间重合行数（0-10 行）
-- 防止工具栏遮挡内容
-- 默认：2 行重合
+![三栏模式演示](../../assets/triple-pane.gif)
 
-### ⌨️ 快捷键支持
-- 自定义翻页导航快捷键
-- 单页上/下翻页
-- 连翻两页快速浏览
+### ⚡ 智能同步
+- 实时双向滚动同步
+- 支持编辑、预览、源码模式
+- 栏间重合行数可调（0–10 行）
+- 模式无缝切换
 
----
+### 🎮 简单易用的控制
+- 工具栏图标 + 模式选择菜单
+- 快捷键支持
+- 一键切换模式
+- 关闭分栏时自动清理
 
-## 🚀 安装
+## 📦 安装
 
 ### 从 Obsidian 社区插件安装
-
-1. 打开 **设置** → **第三方插件**
-2. 关闭 **安全模式**
-3. 点击 **浏览** 并搜索 "Folio"
-4. 点击 **安装**
-5. 启用插件
+1. 打开 设置 → 第三方插件
+2. 搜索 "Folio"
+3. 安装并启用
 
 ### 手动安装
-
 1. 从 [GitHub Releases](https://github.com/liyifan2004/obsidian-folio/releases) 下载最新版本
-2. 解压文件到插件文件夹：`<vault>/.obsidian/plugins/obsidian-dual-pane-sync/`
-3. 重新加载 Obsidian
-4. 在 **设置** → **第三方插件** 中启用插件
+2. 解压到 `.obsidian/plugins/`
+3. 在 设置 → 第三方插件 中启用
 
----
+## 🚀 使用方法
 
-## 🎯 使用方法
+### 工具栏菜单
+点击左侧工具栏的 ◪ 图标打开 Folio 的模式选择菜单：
 
-### 快速开始
+- **双栏模式** —— 主视图 + 右侧跟随栏
+- **三栏模式** —— 左右跟随栏 + 主视图
+- **停止** —— 关闭所有跟随栏
 
-1. 在 Obsidian 中打开任意 Markdown 笔记
-2. 点击左侧功能区的 **📑 图标**
-3. 右侧窗口自动分割并跟随你的滚动
+### 命令
+所有命令都可以在命令面板（Ctrl/Cmd + P）中找到：
 
-### 快捷键配置
+| 命令 | 说明 |
+|---------|-------------|
+| Toggle Dual Pane Mode | 启用/禁用双栏工作区 |
+| Toggle Triple Pane Mode | 启用/禁用三栏工作区 |
+| Stop Folio Workspace | 关闭所有工作区分栏 |
+| Page Up | 向上滚动一页 |
+| Page Down | 向下滚动一页 |
+| Double Page Up | 向上滚动两页 |
+| Double Page Down | 向下滚动两页 |
 
-1. 打开 **设置** → **快捷键**
-2. 搜索 "Folio"
-3. 绑定你喜欢的按键：
-   - **切换**：启用/禁用跟随模式
-   - **上一页/下一页**：按屏幕导航
-   - **连翻两页**：快速浏览
+### 推荐快捷键
+- **双栏模式**：`Ctrl/Cmd + Shift + D`
+- **三栏模式**：`Ctrl/Cmd + Shift + T`
+- **停止 Folio**：`Ctrl/Cmd + Shift + Q`
+- **上一页**：`Ctrl/Cmd + ↑`
+- **下一页**：`Ctrl/Cmd + ↓`
 
-**推荐快捷键：**
-- `Page Up` / `Page Down`
-- `Ctrl + ↑` / `Ctrl + ↓`
-- `Cmd + ↑` / `Cmd + ↓` (Mac)
+## ⚙️ 设置
 
-### 调整重合行数
+### 内容重合
+调整分栏之间的重合行数（0–10 行）：
+- **0**：无重合，翻页边界清晰
+- **2–3**：推荐的流畅阅读值
+- **5–10**：更强的上下文连续性
 
-1. 打开 **设置** → **Folio**
-2. 调整 **重合行数** 滑块
-3. 更改立即生效
+### 语言
+界面语言自动跟随 Obsidian 设置（English、简体中文 / 繁體中文、日本語、한국어、Français、Deutsch、Español、العربية）。
 
-**提示：** 如果工具栏遮挡内容，将重合行数增加到 3-4 行。
+![Folio 设置页](../../assets/settings.png)
 
----
+## 🎯 使用场景
 
-## ⚙️ 设置项
+### 写作者
+- 写作时看到前文语境
+- 预览后续章节
+- 在长文档中保持叙事连贯
 
-| 设置项 | 说明 | 默认值 |
-|--------|------|--------|
-| **重合行数** | 左右窗口间重合显示的行数 | 2 |
+### 读者
+- 阅读不被翻页打断
+- 无缝滚动体验
+- 小说与长文的理想选择
 
----
+### 译者
+- 左侧原文，右侧译文
+- 翻译时随时参考下一节
 
-## 📸 截图
+### 审阅者
+- 并排对比章节
+- 完整的文档语境
+- 高效的校对流程
 
-### 编辑模式
-```
-┌───────────────────────┬───────────────────────┐
-│  左侧：编辑模式       │  右侧：编辑模式       │
-│  （完全可编辑）       │  （显示接续内容）     │
-│                       │                       │
-│  ## 简介              │  ## 开始使用          │
-│  这是开始部分...      │  要开始使用...        │
-│                       │                       │
-└───────────────────────┴───────────────────────┘
-```
+## 🔧 兼容性
 
-### 预览模式
-```
-┌───────────────────────┬───────────────────────┐
-│  左侧：预览模式       │  右侧：预览模式       │
-│  （渲染视图）         │  （显示接续内容）     │
-│                       │                       │
-│  # 文档标题           │  ## 下一章节          │
-│  介绍文字...          │  更多内容...          │
-│                       │                       │
-└───────────────────────┴───────────────────────┘
-```
+- Obsidian v0.15.0+
+- 桌面端：Windows、macOS、Linux · 支持移动端（`isDesktopOnly: false`）
+- 支持编辑、预览、源码模式
+- 兼容所有 Markdown 内容
 
----
+## 🤝 反馈与支持
 
-## 🛠️ 开发者
-
-### 从源码构建
-
-```bash
-# 克隆仓库
-git clone https://github.com/liyifan2004/obsidian-folio.git
-
-# 安装依赖
-npm install
-
-# 构建插件
-npm run build
-
-# 开发模式（支持热重载）
-npm run dev
-```
-
-### 项目结构
-
-```
-obsidian-dual-pane-sync/
-├── src/
-│   ├── followMode.ts      # 核心跟随模式逻辑
-│   ├── settings.ts        # 设置界面
-│   ├── i18n.ts           # 国际化
-│   └── types.ts          # 类型定义
-├── docs/i18n/            # 本地化 README
-├── main.ts               # 插件入口
-├── manifest.json         # 插件清单
-└── README.md             # 本文件
-```
-
----
-
-## 🌍 本地化
-
-本插件支持 9 种语言：
-
-- 🇺🇸 English（默认）
-- 🇨🇳 简体中文
-- 🇹🇼 繁體中文
-- 🇯🇵 日本語
-- 🇰🇷 한국어
-- 🇫🇷 Français
-- 🇩🇪 Deutsch
-- 🇪🇸 Español
-- 🇸🇦 العربية
-
-插件自动检测您的 Obsidian 语言设置。
-
----
-
-## 📝 更新日志
-
-### v1.0.0
-- 初始版本
-- 双向滚动同步
-- 支持 9 种语言
-- 快捷键支持
-- 可自定义重合行数
-
----
-
-## 🤝 贡献
-
-欢迎贡献！请随时提交 Pull Request。
-
-### 报告问题
-
-如果您发现 bug 或有建议：
-1. 检查问题是否已存在
-2. 创建新问题并提供清晰的描述
-3. 包含复现步骤（如果是 bug）
-
----
-
-## 📄 许可证
-
-[MIT 许可证](LICENSE) © 2024 [Your Name]
-
----
+- 🐛 [提交问题](https://github.com/liyifan2004/obsidian-folio/issues)
+- ⭐ 如果觉得有用，给仓库点个 Star！
 
 ## 🙏 致谢
 
-- 感谢 Obsidian 团队提供优秀的平台
-- 感谢 Obsidian 社区的反馈和建议
+本插件基于 [adeyahya/obsidian-folio](https://github.com/adeyahya/obsidian-folio)。感谢原作者的出色创意与实现。
 
----
+## 📜 许可证
 
-<div align="center">
-
-**[⬆ 返回顶部](#folio)**
-
-用 ❤️ 为 Obsidian 社区制作
-
-</div>
+[MIT](../../LICENSE)
