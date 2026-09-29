@@ -1,7 +1,7 @@
 {
   "name": "multifolio",
-  "version": "1.0.0",
-  "description": "Folio: Multicolumn Workspace - A continuous multi-column workspace for seamless reading and editing",
+  "version": "1.0.2",
+  "description": "MultiFolio - A continuous multi-column workspace for seamless reading and editing",
   "main": "main.js",
   "scripts": {
     "dev": "node esbuild.config.mjs",
