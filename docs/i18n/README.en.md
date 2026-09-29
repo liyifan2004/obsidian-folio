@@ -1,6 +1,6 @@
-# Folio
+# MultiFolio
 
-**Folio: Multicolumn Workspace**
+**MultiFolio: Multicolumn Workspace**
 
 [![GitHub release](https://img.shields.io/github/v/release/liyifan2004/obsidian-folio)](https://github.com/liyifan2004/obsidian-folio/releases)
 [![Obsidian plugin](https://img.shields.io/badge/Obsidian-Plugin-purple)](https://obsidian.md)
@@ -13,7 +13,7 @@ A continuous multi-column workspace for seamless reading and editing.
 
 ## 🌐 Languages
 
-Folio supports 9 languages:
+MultiFolio supports 9 languages:
 
 [English](./docs/i18n/en.md) | [简体中文](./docs/i18n/zh.md) | [繁體中文](./docs/i18n/zh-TW.md) | [日本語](./docs/i18n/ja.md) | [한국어](./docs/i18n/ko.md) | [Français](./docs/i18n/fr.md) | [Deutsch](./docs/i18n/de.md) | [Español](./docs/i18n/es.md) | [العربية](./docs/i18n/ar.md)
 
@@ -48,7 +48,7 @@ Folio supports 9 languages:
 
 ### From Obsidian Community Plugins
 1. Open Settings → Community Plugins
-2. Search for "Folio"
+2. Search for "MultiFolio"
 3. Install and Enable
 
 ### Manual Installation
@@ -59,7 +59,7 @@ Folio supports 9 languages:
 ## 🚀 Usage
 
 ### Toolbar Menu
-Click the ◪ icon in the left toolbar to open Folio's mode selection menu:
+Click the ◪ icon in the left toolbar to open MultiFolio's mode selection menu:
 
 - **Dual Pane Mode** - Main + Right follower
 - **Triple Pane Mode** - Left + Main + Right followers
@@ -72,7 +72,7 @@ All commands can be found in Command Palette (Ctrl/Cmd + P):
 |---------|-------------|
 | Toggle Dual Pane Mode | Enable/disable dual pane workspace |
 | Toggle Triple Pane Mode | Enable/disable triple pane workspace |
-| Stop Folio Workspace | Close all workspace panes |
+| Stop MultiFolio Workspace | Close all workspace panes |
 | Page Up | Scroll up by one page |
 | Page Down | Scroll down by one page |
 | Double Page Up | Scroll up by two pages |
@@ -81,7 +81,7 @@ All commands can be found in Command Palette (Ctrl/Cmd + P):
 ### Recommended Hotkeys
 - **Dual Pane Mode**: `Ctrl/Cmd + Shift + D`
 - **Triple Pane Mode**: `Ctrl/Cmd + Shift + T`
-- **Stop Folio**: `Ctrl/Cmd + Shift + Q`
+- **Stop MultiFolio**: `Ctrl/Cmd + Shift + Q`
 - **Page Up**: `Ctrl/Cmd + ↑`
 - **Page Down**: `Ctrl/Cmd + ↓`
 

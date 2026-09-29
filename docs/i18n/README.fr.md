@@ -1,9 +1,9 @@
-# Folio
+# MultiFolio
 
 [![GitHub release](https://img.shields.io/github/v/release/liyifan2004/obsidian-folio)](https://github.com/liyifan2004/obsidian-folio/releases)
 [![License](https://img.shields.io/github/license/liyifan2004/obsidian-folio)](LICENSE)
 
-> **Folio: Espace de Travail Multi-colonnes**\n>\n> Un espace de travail multi-colonnes continu pour une lecture et une édition fluides
+> **MultiFolio: Espace de Travail Multi-colonnes**\n>\n> Un espace de travail multi-colonnes continu pour une lecture et une édition fluides
 
 **[English](../../README.md)** | [简体中文](README.zh.md) | [繁體中文](README.zh-TW.md) | [日本語](README.ja.md) | [한국어](README.ko.md) | **Français** | [Deutsch](README.de.md) | [Español](README.es.md) | [العربية](README.ar.md)
 
@@ -11,7 +11,7 @@
 
 ## 📖 Aperçu
 
-**Folio** crée un environnement de travail multi-colonnes synchronisé dans Obsidian :
+**MultiFolio** crée un environnement de travail multi-colonnes synchronisé dans Obsidian :
 
 - **Panneau gauche** : Éditeur/aperçu natif Obsidian, entièrement éditable
 - **Panneau droit** : Vue fractionnée automatique affichant la suite du contenu
@@ -40,7 +40,7 @@
 
 1. Ouvrez **Paramètres** → **Plugins communautaires**
 2. Désactivez le **Mode sécurisé**
-3. Cliquez sur **Parcourir** et recherchez "Folio"
+3. Cliquez sur **Parcourir** et recherchez "MultiFolio"
 4. Cliquez sur **Installer**
 5. Activez le plugin
 

@@ -1,9 +1,9 @@
-# Folio
+# MultiFolio
 
 [![GitHub release](https://img.shields.io/github/v/release/liyifan2004/obsidian-folio)](https://github.com/liyifan2004/obsidian-folio/releases)
 [![License](https://img.shields.io/github/license/liyifan2004/obsidian-folio)](LICENSE)
 
-> **Folio: Espacio de Trabajo Multicolumna**
+> **MultiFolio: Espacio de Trabajo Multicolumna**
 >
 > Un espacio de trabajo multicolumna continuo para lectura y edición sin interrupciones
 
@@ -13,7 +13,7 @@
 
 ## 📖 Descripción General
 
-**Folio** crea un entorno de lectura de doble panel sincronizado en Obsidian:
+**MultiFolio** crea un entorno de lectura de doble panel sincronizado en Obsidian:
 
 - **Panel izquierdo**: Editor/vista previa nativo de Obsidian, completamente editable
 - **Panel derecho**: Vista dividida automática que muestra la continuación del contenido
@@ -42,7 +42,7 @@
 
 1. Abra **Configuración** → **Plugins de la comunidad**
 2. Desactive el **Modo seguro**
-3. Haga clic en **Examinar** y busque "Folio"
+3. Haga clic en **Examinar** y busque "MultiFolio"
 4. Haga clic en **Instalar**
 5. Active el plugin
 

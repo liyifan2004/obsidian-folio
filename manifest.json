@@ -1,11 +1,11 @@
 {
-	"id": "obsidian-folio",
-	"name": "Folio",
-	"version": "1.0.0",
-	"minAppVersion": "0.15.0",
-	"description": "A continuous multi-column workspace for seamless reading and editing",
-	"author": "Li Yifan",
-	"authorUrl": "https://github.com/liyifan2004",
-	"fundingUrl": "",
-	"isDesktopOnly": false
+  "id": "multifolio",
+  "name": "MultiFolio",
+  "version": "1.0.1",
+  "minAppVersion": "0.15.0",
+  "description": "A continuous multi-column workspace for seamless reading and editing",
+  "author": "Li Yifan",
+  "authorUrl": "https://github.com/liyifan2004",
+  "fundingUrl": "",
+  "isDesktopOnly": false
 }

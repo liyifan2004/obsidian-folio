@@ -1,6 +1,6 @@
-# Folio
+# MultiFolio
 
-**Folio: Mehrspaltiger Arbeitsbereich**
+**MultiFolio: Mehrspaltiger Arbeitsbereich**
 
 > Ein kontinuierlicher mehrspaltiger Arbeitsbereich für nahtloses Lesen und Bearbeiten
 
@@ -15,7 +15,7 @@
 
 ## 📖 Übersicht
 
-**Folio** erstellt eine synchronisierte Zwei-Fenster-Leseumgebung in Obsidian:
+**MultiFolio** erstellt eine synchronisierte Zwei-Fenster-Leseumgebung in Obsidian:
 
 - **Linker Bereich**: Nativer Obsidian-Editor/Vorschau, vollständig bearbeitbar
 - **Rechter Bereich**: Automatisch geteilte Ansicht zeigt die Fortsetzung des Inhalts
@@ -44,7 +44,7 @@
 
 1. **Einstellungen** → **Community-Plugins** öffnen
 2. **Sicherer Modus** deaktivieren
-3. Auf **Durchsuchen** klicken und "Folio" suchen
+3. Auf **Durchsuchen** klicken und "MultiFolio" suchen
 4. Auf **Installieren** klicken
 5. Plugin aktivieren
 

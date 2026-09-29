@@ -1,9 +1,9 @@
-# Folio
+# MultiFolio
 
 [![GitHub release](https://img.shields.io/github/v/release/liyifan2004/obsidian-folio)](https://github.com/liyifan2004/obsidian-folio/releases)
 [![License](https://img.shields.io/github/license/liyifan2004/obsidian-folio)](LICENSE)
 
-> **Folio: 다중 열 작업 공간**
+> **MultiFolio: 다중 열 작업 공간**
 >
 > 원활한 읽기와 편집을 위한 연속적인 다중 열 작업 공간
 
@@ -13,7 +13,7 @@
 
 ## 📖 개요
 
-**Folio**는 Obsidian에서 동기화된 다중 열 독서 환경을 생성합니다:
+**MultiFolio**는 Obsidian에서 동기화된 다중 열 독서 환경을 생성합니다:
 
 - **왼쪽 패널**: 기본 Obsidian 편집기/미리보기, 완전히 편집 가능
 - **오른쪽 패널**: 자동 분할 표시, 왼쪽 콘텐츠의 계속 표시
@@ -42,7 +42,7 @@
 
 1. **설정** → **커뮤니티 플러그인** 열기
 2. **안전 모드** 끄기
-3. **찾아보기** 클릭하고 "Folio" 검색
+3. **찾아보기** 클릭하고 "MultiFolio" 검색
 4. **설치** 클릭
 5. 플러그인 활성화
 

@@ -1,11 +1,11 @@
-# Folio
+# MultiFolio
 
 [![GitHub release](https://img.shields.io/github/v/release/liyifan2004/obsidian-folio?style=flat-square)](https://github.com/liyifan2004/obsidian-folio/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](../../LICENSE)
 
 [English](../../README.md) | [简体中文](README.zh.md) | [繁體中文](README.zh-TW.md) | [日本語](README.ja.md) | [한국어](README.ko.md) | [Français](README.fr.md) | [Deutsch](README.de.md) | [Español](README.es.md) | [العربية](README.ar.md)
 
-**Folio：多栏工作区** —— Obsidian 中为无缝阅读与编辑而生的连续多栏工作空间。
+**MultiFolio：多栏工作区** —— Obsidian 中为无缝阅读与编辑而生的连续多栏工作空间。
 
 - **双栏模式**：当前视图 + 下一屏，滚动同步
 - **三栏模式**：上一屏 + 当前 + 下一屏，编辑时拥有完整上下文
@@ -43,7 +43,7 @@
 
 ### 从 Obsidian 社区插件安装
 1. 打开 设置 → 第三方插件
-2. 搜索 "Folio"
+2. 搜索 "MultiFolio"
 3. 安装并启用
 
 ### 手动安装
@@ -54,7 +54,7 @@
 ## 🚀 使用方法
 
 ### 工具栏菜单
-点击左侧工具栏的 ◪ 图标打开 Folio 的模式选择菜单：
+点击左侧工具栏的 ◪ 图标打开 MultiFolio 的模式选择菜单：
 
 - **双栏模式** —— 主视图 + 右侧跟随栏
 - **三栏模式** —— 左右跟随栏 + 主视图
@@ -67,7 +67,7 @@
 |---------|-------------|
 | Toggle Dual Pane Mode | 启用/禁用双栏工作区 |
 | Toggle Triple Pane Mode | 启用/禁用三栏工作区 |
-| Stop Folio Workspace | 关闭所有工作区分栏 |
+| Stop MultiFolio Workspace | 关闭所有工作区分栏 |
 | Page Up | 向上滚动一页 |
 | Page Down | 向下滚动一页 |
 | Double Page Up | 向上滚动两页 |
@@ -76,7 +76,7 @@
 ### 推荐快捷键
 - **双栏模式**：`Ctrl/Cmd + Shift + D`
 - **三栏模式**：`Ctrl/Cmd + Shift + T`
-- **停止 Folio**：`Ctrl/Cmd + Shift + Q`
+- **停止 MultiFolio**：`Ctrl/Cmd + Shift + Q`
 - **上一页**：`Ctrl/Cmd + ↑`
 - **下一页**：`Ctrl/Cmd + ↓`
 
@@ -91,7 +91,7 @@
 ### 语言
 界面语言自动跟随 Obsidian 设置（English、简体中文 / 繁體中文、日本語、한국어、Français、Deutsch、Español、العربية）。
 
-![Folio 设置页](../../assets/settings.png)
+![MultiFolio 设置页](../../assets/settings.png)
 
 ## 🎯 使用场景
 

@@ -74,7 +74,7 @@ const translations: Record<Language, Record<string, string>> = {
 		'noticeTripleStarted': 'Triple pane mode started',
 		
 		// 工具栏
-		'ribbonTooltip': 'Folio: Multicolumn Workspace',
+		'ribbonTooltip': 'MultiFolio: Multicolumn Workspace',
 		
 		// 功能说明
 		'featureSync': 'Sync Scroll',
@@ -135,7 +135,7 @@ const translations: Record<Language, Record<string, string>> = {
 		'noticeTripleStarted': '三栏模式已启动',
 		
 		// 工具栏
-		'ribbonTooltip': 'Folio: 多栏工作区',
+		'ribbonTooltip': 'MultiFolio: 多栏工作区',
 		
 		// 功能说明
 		'featureSync': '同步滚动',
@@ -196,7 +196,7 @@ const translations: Record<Language, Record<string, string>> = {
 		'noticeTripleStarted': '三欄模式已啟動',
 		
 		// 工具列
-		'ribbonTooltip': 'Folio: 多欄工作區',
+		'ribbonTooltip': 'MultiFolio: 多欄工作區',
 		
 		// 功能說明
 		'featureSync': '同步捲動',
@@ -257,7 +257,7 @@ const translations: Record<Language, Record<string, string>> = {
 		'noticeTripleStarted': '3ペインモードを開始しました',
 		
 		// リボン
-		'ribbonTooltip': 'Folio: マルチカラムワークスペース',
+		'ribbonTooltip': 'MultiFolio: マルチカラムワークスペース',
 		
 		// 機能説明
 		'featureSync': '同期スクロール',
@@ -318,7 +318,7 @@ const translations: Record<Language, Record<string, string>> = {
 		'noticeTripleStarted': '3창 모드가 시작되었습니다',
 		
 		// 리본
-		'ribbonTooltip': 'Folio: 다중 열 작업 공간',
+		'ribbonTooltip': 'MultiFolio: 다중 열 작업 공간',
 		
 		// 기능 설명
 		'featureSync': '동기화 스크롤',
@@ -379,7 +379,7 @@ const translations: Record<Language, Record<string, string>> = {
 		'noticeTripleStarted': 'Mode 3 volets activé',
 		
 		// Ruban
-		'ribbonTooltip': 'Folio: Espace de Travail Multi-colonnes',
+		'ribbonTooltip': 'MultiFolio: Espace de Travail Multi-colonnes',
 		
 		// Description des fonctionnalités
 		'featureSync': 'Défilement synchronisé',
@@ -440,7 +440,7 @@ const translations: Record<Language, Record<string, string>> = {
 		'noticeTripleStarted': '3-Fenster-Modus gestartet',
 		
 		// Ribbon
-		'ribbonTooltip': 'Folio: Mehrspaltiger Arbeitsbereich',
+		'ribbonTooltip': 'MultiFolio: Mehrspaltiger Arbeitsbereich',
 		
 		// Funktionsbeschreibung
 		'featureSync': 'Synchronisiertes Scrollen',
@@ -501,7 +501,7 @@ const translations: Record<Language, Record<string, string>> = {
 		'noticeTripleStarted': 'Modo 3 paneles iniciado',
 		
 		// Cinta
-		'ribbonTooltip': 'Folio: Espacio de Trabajo Multicolumna',
+		'ribbonTooltip': 'MultiFolio: Espacio de Trabajo Multicolumna',
 		
 		// Descripción de características
 		'featureSync': 'Desplazamiento sincronizado',
@@ -562,7 +562,7 @@ const translations: Record<Language, Record<string, string>> = {
 		'noticeTripleStarted': 'تم تشغيل وضع ثلاث نوافذ',
 		
 		// الشريط
-		'ribbonTooltip': 'Folio: مساحة عمل متعددة الأعمدة',
+		'ribbonTooltip': 'MultiFolio: مساحة عمل متعددة الأعمدة',
 		
 		// وصف الميزات
 		'featureSync': 'التمرير المتزامن',

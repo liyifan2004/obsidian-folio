@@ -2,13 +2,13 @@
   <img src="assets/icon.png" alt="Folio icon" width="96" />
 </p>
 
-# Folio
+# MultiFolio
 
 [![GitHub release](https://img.shields.io/github/v/release/liyifan2004/obsidian-folio?style=flat-square)](https://github.com/liyifan2004/obsidian-folio/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
 [![Obsidian plugin](https://img.shields.io/badge/Obsidian-Plugin-purple?style=flat-square)](https://obsidian.md)
 
-**Folio: Multicolumn Workspace** — a continuous multi-column workspace for seamless reading and editing in Obsidian.
+**MultiFolio: Multicolumn Workspace** — a continuous multi-column workspace for seamless reading and editing in Obsidian.
 
 - **Dual Pane Mode**: current view + next screen, synchronized scrolling
 - **Triple Pane Mode**: previous + current + next screens, full context while editing
@@ -52,7 +52,7 @@ Folio's interface supports 9 languages, auto-detected from your Obsidian setting
 
 ### From Obsidian Community Plugins
 1. Open Settings → Community Plugins
-2. Search for "Folio"
+2. Search for "MultiFolio"
 3. Install and Enable
 
 ### Manual Installation
@@ -63,7 +63,7 @@ Folio's interface supports 9 languages, auto-detected from your Obsidian setting
 ## 🚀 Usage
 
 ### Toolbar Menu
-Click the ◪ icon in the left toolbar to open Folio's mode selection menu:
+Click the ◪ icon in the left toolbar to open MultiFolio's mode selection menu:
 
 - **Dual Pane Mode** — main + right follower
 - **Triple Pane Mode** — left + main + right followers
@@ -76,7 +76,7 @@ All commands can be found in the Command Palette (Ctrl/Cmd + P):
 |---------|-------------|
 | Toggle Dual Pane Mode | Enable/disable dual pane workspace |
 | Toggle Triple Pane Mode | Enable/disable triple pane workspace |
-| Stop Folio Workspace | Close all workspace panes |
+| Stop Synchronized Reading | Close all workspace panes |
 | Page Up | Scroll up by one page |
 | Page Down | Scroll down by one page |
 | Double Page Up | Scroll up by two pages |
@@ -85,7 +85,7 @@ All commands can be found in the Command Palette (Ctrl/Cmd + P):
 ### Recommended Hotkeys
 - **Dual Pane Mode**: `Ctrl/Cmd + Shift + D`
 - **Triple Pane Mode**: `Ctrl/Cmd + Shift + T`
-- **Stop Folio**: `Ctrl/Cmd + Shift + Q`
+- **Stop synchronized reading**: `Ctrl/Cmd + Shift + Q`
 - **Page Up**: `Ctrl/Cmd + ↑`
 - **Page Down**: `Ctrl/Cmd + ↓`
 

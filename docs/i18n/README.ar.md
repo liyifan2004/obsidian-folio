@@ -1,9 +1,9 @@
-# Folio
+# MultiFolio
 
 [![GitHub release](https://img.shields.io/github/v/release/liyifan2004/obsidian-folio)](https://github.com/liyifan2004/obsidian-folio/releases)
 [![License](https://img.shields.io/github/license/liyifan2004/obsidian-folio)](LICENSE)
 
-**Folio: مساحة عمل متعددة الأعمدة**
+**MultiFolio: مساحة عمل متعددة الأعمدة**
 
 مساحة عمل متعددة الأعمدة مستمرة للقراءة والتحرير السلس
 
@@ -13,7 +13,7 @@
 
 ## 📖 نظرة عامة
 
-**Folio** ينشئ بيئة قراءة مزدوجة اللوحات متزامنة في Obsidian:
+**MultiFolio** ينشئ بيئة قراءة مزدوجة اللوحات متزامنة في Obsidian:
 
 - **اللوحة اليسرى**: محرر Obsidian / معاينة أصلى، قابل للتحرير بالكامل
 - **اللوحة اليمنى**: عرض منقسم تلقائياً يعرض استمرار المحتوى
@@ -42,7 +42,7 @@
 
 1. افتح **الإعدادات** → **إضافات المجتمع**
 2. أوقف **وضع الأمان**
-3. انقر على **تصفح** وابحث عن "Folio"
+3. انقر على **تصفح** وابحث عن "MultiFolio"
 4. انقر على **تثبيت**
 5. فعل الإضافة
 
