@@ -125,7 +125,7 @@ Interface language is automatically detected from Obsidian settings (English, �
 
 ## 🔧 Compatibility
 
-- Obsidian v0.15.0+
+- Obsidian v1.8.7+
 - Desktop: Windows, macOS, Linux · Mobile supported (`isDesktopOnly: false`)
 - Supports Edit, Preview, and Source modes
 - Works with all Markdown content
@@ -137,7 +137,7 @@ Interface language is automatically detected from Obsidian settings (English, �
 
 ## 🙏 Credits
 
-This plugin is based on [adeyahya/obsidian-folio](https://github.com/adeyahya/obsidian-folio). Thanks to the original author for the great idea and implementation.
+This plugin is based on the original Folio plugin by [adeyahya](https://github.com/adeyahya). Thanks to the original author for the great idea and implementation.
 
 ## 📜 License
 

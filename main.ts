@@ -1,9 +1,6 @@
 import { 
 	Plugin, 
-	WorkspaceLeaf, 
-	TFile, 
 	Menu, 
-	MarkdownView,
 	Notice
 } from 'obsidian';
 import { DualPaneFollowMode, ViewMode } from './src/followMode';
@@ -79,19 +76,19 @@ export default class DualPaneSyncPlugin extends Plugin {
 		this.addCommand({
 			id: 'double-page-up',
 			name: t('cmdDoublePageUp'),
-			callback: () => {
-				this.followMode.pageScroll('up');
-				setTimeout(() => this.followMode.pageScroll('up'), 50);
-			}
+		callback: () => {
+			this.followMode.pageScroll('up');
+			window.setTimeout(() => this.followMode.pageScroll('up'), 50);
+		}
 		});
 
 		this.addCommand({
 			id: 'double-page-down',
 			name: t('cmdDoublePageDown'),
-			callback: () => {
-				this.followMode.pageScroll('down');
-				setTimeout(() => this.followMode.pageScroll('down'), 50);
-			}
+		callback: () => {
+			this.followMode.pageScroll('down');
+			window.setTimeout(() => this.followMode.pageScroll('down'), 50);
+		}
 		});
 
 		// ========== 工具栏图标 ==========
@@ -175,7 +172,8 @@ export default class DualPaneSyncPlugin extends Plugin {
 	}
 
 	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+		const data = (await this.loadData()) as Partial<DualPanePluginSettings> | null;
+		this.settings = { ...DEFAULT_SETTINGS, ...(data ?? {}) };
 	}
 
 	async saveSettings() {

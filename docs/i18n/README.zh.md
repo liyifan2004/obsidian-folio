@@ -116,7 +116,7 @@
 
 ## 🔧 兼容性
 
-- Obsidian v0.15.0+
+- Obsidian v1.8.7+
 - 桌面端：Windows、macOS、Linux · 支持移动端（`isDesktopOnly: false`）
 - 支持编辑、预览、源码模式
 - 兼容所有 Markdown 内容
@@ -128,7 +128,7 @@
 
 ## 🙏 致谢
 
-本插件基于 [adeyahya/obsidian-folio](https://github.com/adeyahya/obsidian-folio)。感谢原作者的出色创意与实现。
+本插件基于 [adeyahya](https://github.com/adeyahya) 的原版 Folio 插件。感谢原作者的出色创意与实现。
 
 ## 📜 许可证
 

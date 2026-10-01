@@ -1,8 +1,9 @@
-import { 
+import {
 	WorkspaceLeaf, 
 	TFile, 
 	MarkdownView,
 	Notice,
+	View,
 	Workspace
 } from 'obsidian';
 		  
@@ -112,13 +113,13 @@ export class DualPaneFollowMode {
 		if (!this.mainLeaf) return;
 		
 		try {
-			const container = this.getScrollContainer(this.mainLeaf.view as MarkdownView);
+			const container = this.getScrollContainer(this.mainLeaf.view);
 			if (!container) return;
 			
 			this.mainScrollTop = container.scrollTop;
 			const maxScroll = container.scrollHeight - container.clientHeight;
 			this.mainScrollRatio = maxScroll > 0 ? this.mainScrollTop / maxScroll : 0;
-		} catch (e) {
+		} catch {
 			this.mainScrollRatio = 0;
 			this.mainScrollTop = 0;
 		}
@@ -134,7 +135,7 @@ export class DualPaneFollowMode {
 		await this.waitForRender(this.mainLeaf, 800);
 
 		// 恢复主窗口位置 - 优先使用比例，更稳定
-		const container = this.getScrollContainer(this.mainLeaf.view as MarkdownView);
+		const container = this.getScrollContainer(this.mainLeaf.view);
 		if (container) {
 			const maxScroll = container.scrollHeight - container.clientHeight;
 			const targetScroll = maxScroll > 0 ? this.mainScrollRatio * maxScroll : 0;
@@ -148,7 +149,7 @@ export class DualPaneFollowMode {
 		}
 
 		// 等待滚动稳定
-		await new Promise(resolve => setTimeout(resolve, 150));
+		await new Promise(resolve => window.setTimeout(resolve, 150));
 
 		// 同步到跟随窗口
 		this.forceSyncAll();
@@ -161,13 +162,13 @@ export class DualPaneFollowMode {
 		const startTime = Date.now();
 		
 		while (Date.now() - startTime < timeout) {
-			const container = this.getScrollContainer(leaf.view as MarkdownView);
+			const container = this.getScrollContainer(leaf.view);
 			if (container && container.scrollHeight > 100) {
 				// 内容似乎已加载，再等待一小段时间让渲染完成
-				await new Promise(resolve => setTimeout(resolve, 100));
+				await new Promise(resolve => window.setTimeout(resolve, 100));
 				return;
 			}
-			await new Promise(resolve => setTimeout(resolve, 50));
+			await new Promise(resolve => window.setTimeout(resolve, 50));
 		}
 	}
 
@@ -181,8 +182,8 @@ export class DualPaneFollowMode {
 		this.doSync('main');
 		
 		// 对于长文档，可能需要多次同步才能稳定
-		setTimeout(() => this.doSync('main'), 100);
-		setTimeout(() => this.doSync('main'), 300);
+		window.setTimeout(() => this.doSync('main'), 100);
+		window.setTimeout(() => this.doSync('main'), 300);
 	}
 
 	/**
@@ -197,7 +198,7 @@ export class DualPaneFollowMode {
 		}
 
 		this.rightFollowLeaf = this.workspace.createLeafBySplit(this.mainLeaf!, 'vertical', false);
-		await new Promise(resolve => setTimeout(resolve, 200));
+		await new Promise(resolve => window.setTimeout(resolve, 200));
 		
 		const mainMode = this.getLeafMode(this.mainLeaf!);
 		await this.rightFollowLeaf.openFile(file, { state: { mode: mainMode } });
@@ -216,14 +217,14 @@ export class DualPaneFollowMode {
 
 		// 创建右跟随
 		this.rightFollowLeaf = this.workspace.createLeafBySplit(this.mainLeaf!, 'vertical', false);
-		await new Promise(resolve => setTimeout(resolve, 200));
+		await new Promise(resolve => window.setTimeout(resolve, 200));
 		await this.rightFollowLeaf.openFile(file, { state: { mode: mainMode } });
 		await this.waitForRender(this.rightFollowLeaf, 400);
 		this.markFollowLeaf(this.rightFollowLeaf, 'right');
 
 		// 创建左跟随
 		this.leftFollowLeaf = this.workspace.createLeafBySplit(this.mainLeaf!, 'vertical', true);
-		await new Promise(resolve => setTimeout(resolve, 200));
+		await new Promise(resolve => window.setTimeout(resolve, 200));
 		await this.leftFollowLeaf.openFile(file, { state: { mode: mainMode } });
 		await this.waitForRender(this.leftFollowLeaf, 400);
 		this.markFollowLeaf(this.leftFollowLeaf, 'left');
@@ -271,7 +272,7 @@ export class DualPaneFollowMode {
 		this.scrollCleanups = [];
 
 		if (this.mainLeaf) {
-			const mainContainer = this.getScrollContainer(this.mainLeaf.view as MarkdownView);
+			const mainContainer = this.getScrollContainer(this.mainLeaf.view);
 			if (mainContainer) {
 				const cleanup = this.attachScrollListener(mainContainer, 'main');
 				if (cleanup) this.scrollCleanups.push(cleanup);
@@ -279,7 +280,7 @@ export class DualPaneFollowMode {
 		}
 
 		if (this.leftFollowLeaf) {
-			const leftContainer = this.getScrollContainer(this.leftFollowLeaf.view as MarkdownView);
+			const leftContainer = this.getScrollContainer(this.leftFollowLeaf.view);
 			if (leftContainer) {
 				const cleanup = this.attachScrollListener(leftContainer, 'left');
 				if (cleanup) this.scrollCleanups.push(cleanup);
@@ -287,7 +288,7 @@ export class DualPaneFollowMode {
 		}
 
 		if (this.rightFollowLeaf) {
-			const rightContainer = this.getScrollContainer(this.rightFollowLeaf.view as MarkdownView);
+			const rightContainer = this.getScrollContainer(this.rightFollowLeaf.view);
 			if (rightContainer) {
 				const cleanup = this.attachScrollListener(rightContainer, 'right');
 				if (cleanup) this.scrollCleanups.push(cleanup);
@@ -305,7 +306,7 @@ export class DualPaneFollowMode {
 			if (this.isSyncing || this.isResizing) return;
 			if (rafId) return;
 			
-			rafId = requestAnimationFrame(() => {
+			rafId = window.requestAnimationFrame(() => {
 				rafId = null;
 				if (this.isActive && !this.isResizing) {
 					this.doSync(source);
@@ -314,10 +315,10 @@ export class DualPaneFollowMode {
 		};
 
 		container.addEventListener('scroll', handler, { passive: true });
-		
+
 		return () => {
 			container.removeEventListener('scroll', handler);
-			if (rafId) cancelAnimationFrame(rafId);
+			if (rafId) window.cancelAnimationFrame(rafId);
 		};
 	}
 
@@ -354,17 +355,12 @@ export class DualPaneFollowMode {
 		// 观察所有相关元素
 		const observeContainer = (leaf: WorkspaceLeaf | null) => {
 			if (!leaf) return;
-			const container = this.getScrollContainer(leaf.view as MarkdownView);
+			const container = this.getScrollContainer(leaf.view);
 			if (container) {
 				this.resizeObserver?.observe(container);
 			}
-			// 同时观察叶子容器本身（栏宽变化）
-			try {
-				const leafContainer = (leaf as any).containerEl;
-				if (leafContainer) {
-					this.resizeObserver?.observe(leafContainer);
-				}
-			} catch (e) {}
+			// 同时观察视图容器本身（栏宽变化）
+			this.resizeObserver?.observe(leaf.view.containerEl);
 		};
 
 		observeContainer(this.mainLeaf);
@@ -412,7 +408,7 @@ export class DualPaneFollowMode {
 
 			// 如果有变化，同步所有窗口
 			if (targetFile && source) {
-				this.syncAllToFile(targetFile, source);
+				void this.syncAllToFile(targetFile, source);
 			}
 		}, 400);
 	}
@@ -446,7 +442,7 @@ export class DualPaneFollowMode {
 		await syncLeaf(this.rightFollowLeaf);
 
 		// 等待加载完成后同步滚动
-		setTimeout(() => {
+		window.setTimeout(() => {
 			if (this.isActive) {
 				this.forceSyncAll();
 			}
@@ -462,12 +458,12 @@ export class DualPaneFollowMode {
 		try {
 			this.isSyncing = true;
 
-			const mainContainer = this.getScrollContainer(this.mainLeaf.view as MarkdownView);
+			const mainContainer = this.getScrollContainer(this.mainLeaf.view);
 			const rightContainer = this.rightFollowLeaf 
-				? this.getScrollContainer(this.rightFollowLeaf.view as MarkdownView) 
+				? this.getScrollContainer(this.rightFollowLeaf.view) 
 				: null;
 			const leftContainer = this.leftFollowLeaf 
-				? this.getScrollContainer(this.leftFollowLeaf.view as MarkdownView) 
+				? this.getScrollContainer(this.leftFollowLeaf.view) 
 				: null;
 
 			if (!mainContainer) {
@@ -544,7 +540,7 @@ export class DualPaneFollowMode {
 				rightContainer.scrollTop = targetRightScroll;
 			}
 
-			setTimeout(() => { this.isSyncing = false; }, 16);
+			window.setTimeout(() => { this.isSyncing = false; }, 16);
 		} catch (error) {
 			console.error('同步滚动失败:', error);
 			this.isSyncing = false;
@@ -554,27 +550,26 @@ export class DualPaneFollowMode {
 	/**
 	 * 获取 MarkdownView 的滚动容器
 	 */
-	private getScrollContainer(view: MarkdownView): HTMLElement | null {
+	private getScrollContainer(view: View): HTMLElement | null {
 		try {
-			const contentEl = view.contentEl;
-			if (!contentEl) return null;
+			const containerEl = view.containerEl;
+			if (!containerEl) return null;
 
-			const state = view.getState();
-			const mode = (state as any).mode;
+			const mode = view.getState().mode;
 
 			if (mode === 'preview') {
-				const previewView = contentEl.querySelector('.markdown-preview-view');
+				const previewView = containerEl.querySelector('.markdown-preview-view');
 				if (previewView instanceof HTMLElement) return previewView;
 			} else {
-				const cmScroller = contentEl.querySelector('.cm-scroller');
+				const cmScroller = containerEl.querySelector('.cm-scroller');
 				if (cmScroller instanceof HTMLElement) return cmScroller;
 			}
 
-			const viewContent = contentEl.querySelector('.view-content');
+			const viewContent = containerEl.querySelector('.view-content');
 			if (viewContent instanceof HTMLElement) return viewContent;
 
-			return contentEl;
-		} catch (error) {
+			return containerEl;
+		} catch {
 			return null;
 		}
 	}
@@ -596,7 +591,9 @@ export class DualPaneFollowMode {
 					return fontSize * 1.6;
 				}
 			}
-		} catch (e) {}
+		} catch {
+			// 取样式失败时回退到默认行高
+		}
 		return 28;
 	}
 
@@ -607,8 +604,7 @@ export class DualPaneFollowMode {
 		if (!this.mainLeaf) return;
 
 		try {
-			const mainView = this.mainLeaf.view as MarkdownView;
-			const mainContainer = this.getScrollContainer(mainView);
+			const mainContainer = this.getScrollContainer(this.mainLeaf.view);
 			if (!mainContainer) return;
 
 			const paneHeight = mainContainer.clientHeight;
@@ -644,7 +640,7 @@ export class DualPaneFollowMode {
 			if (currentMode !== lastMode) {
 				lastMode = currentMode;
 				this.setupScrollSync();
-				setTimeout(() => this.forceSyncAll(), 300);
+				window.setTimeout(() => this.forceSyncAll(), 300);
 			}
 		}, 500);
 	}
@@ -654,7 +650,7 @@ export class DualPaneFollowMode {
 	 */
 	private setupLayoutListener(): void {
 		const handler = () => {
-			setTimeout(() => this.checkAndCleanup(), 100);
+			window.setTimeout(() => this.checkAndCleanup(), 100);
 		};
 
 		this.workspace.on('layout-change', handler);
@@ -693,10 +689,8 @@ export class DualPaneFollowMode {
 	private isLeafValid(leaf: WorkspaceLeaf): boolean {
 		try {
 			if (!leaf.view) return false;
-			const container = (leaf as any).containerEl;
-			if (container && !document.body.contains(container)) return false;
-			return true;
-		} catch (e) {
+			return leaf.view.containerEl.isConnected;
+		} catch {
 			return false;
 		}
 	}
@@ -708,13 +702,14 @@ export class DualPaneFollowMode {
 		try {
 			const view = leaf.view;
 			if (view instanceof MarkdownView) {
-				const state = view.getState();
-				const mode = (state as any).mode;
+				const mode = view.getState().mode;
 				if (mode === 'source' || mode === 'preview') {
 					return mode;
 				}
 			}
-		} catch (e) {}
+		} catch {
+			// 状态不可读时按阅读模式处理
+		}
 		return 'preview';
 	}
 
@@ -725,7 +720,9 @@ export class DualPaneFollowMode {
 		try {
 			const view = leaf.view;
 			if (view instanceof MarkdownView) return view.file;
-		} catch (error) {}
+		} catch {
+			// 视图不可用时视为无文件
+		}
 		return null;
 	}
 
@@ -741,11 +738,13 @@ export class DualPaneFollowMode {
 					contentEl.setAttribute('data-follow-mode', position);
 				}
 			}
-			const containerEl = (leaf as any).containerEl;
-			if (containerEl) {
-				containerEl.setAttribute('data-follow-mode', position);
+			const leafEl = leaf.view.containerEl.closest('.workspace-leaf');
+			if (leafEl) {
+				leafEl.setAttribute('data-follow-mode', position);
 			}
-		} catch (error) {}
+		} catch {
+			// 标记失败不影响同步功能
+		}
 	}
 
 	/**
@@ -765,7 +764,9 @@ export class DualPaneFollowMode {
 					return leaf;
 				}
 			}
-		} catch (error) {}
+		} catch {
+			// 查找失败时返回 null，按新建处理
+		}
 		return null;
 	}
 
@@ -785,7 +786,7 @@ export class DualPaneFollowMode {
 		if (this.isActive) {
 			this.stopFollowMode();
 		} else {
-			this.startFollowMode('dual');
+			void this.startFollowMode('dual');
 		}
 	}
 
@@ -861,8 +862,10 @@ export class DualPaneFollowMode {
 				const contentEl = view.contentEl;
 				if (contentEl) contentEl.removeAttribute('data-follow-mode');
 			}
-			const containerEl = (leaf as any).containerEl;
-			if (containerEl) containerEl.removeAttribute('data-follow-mode');
-		} catch (error) {}
+			const leafEl = leaf.view.containerEl.closest('.workspace-leaf');
+			if (leafEl) leafEl.removeAttribute('data-follow-mode');
+		} catch {
+			// 清理失败不影响后续使用
+		}
 	}
 }

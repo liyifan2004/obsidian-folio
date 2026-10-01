@@ -1,4 +1,4 @@
-import { App } from 'obsidian';
+import { getLanguage } from 'obsidian';
 
 // 语言定义
 export type Language = 
@@ -25,11 +25,15 @@ const languageNames: Record<Language, string> = {
 	'ar': 'العربية'
 };
 
-// 从 Obsidian 语言映射到我们的语言代码
+// 从 Obsidian 语言代码映射到我们的语言代码（键一律小写，查找前先归一化）
 const obsidianLanguageMap: Record<string, Language> = {
 	'en': 'en',
 	'zh': 'zh',
-	'zh-TW': 'zh-TW',
+	'zh-cn': 'zh',
+	'zh-hans': 'zh',
+	'zh-tw': 'zh-TW',
+	'zh-hant': 'zh-TW',
+	'zh-hk': 'zh-TW',
 	'ja': 'ja',
 	'ko': 'ko',
 	'fr': 'fr',
@@ -621,30 +625,19 @@ export function t(key: string): string {
  */
 export function detectObsidianLanguage(): Language {
 	try {
-		// @ts-ignore
-		const obsidianApp = window.app as App;
-		if (obsidianApp?.vault) {
-			// 尝试从 localStorage 获取 Obsidian 语言设置
-			const lang = localStorage.getItem('language') || navigator.language || 'en';
-			const baseLang = lang.split('-')[0].toLowerCase();
-			
-			// 首先检查完整语言代码
-			if (obsidianLanguageMap[lang]) {
-				return obsidianLanguageMap[lang];
-			}
-			
-			// 然后检查基础语言代码
-			if (obsidianLanguageMap[baseLang]) {
-				return obsidianLanguageMap[baseLang];
-			}
+		const lang = getLanguage();
+		const normalized = lang.toLowerCase();
+
+		// 首先检查完整语言代码（如 zh-TW 优先于 zh）
+		if (obsidianLanguageMap[normalized]) {
+			return obsidianLanguageMap[normalized];
 		}
-		
-		// 使用浏览器语言作为后备
-		const browserLang = navigator.language || 'en';
-		const baseBrowserLang = browserLang.split('-')[0].toLowerCase();
-		
-		if (obsidianLanguageMap[browserLang]) return obsidianLanguageMap[browserLang];
-		if (obsidianLanguageMap[baseBrowserLang]) return obsidianLanguageMap[baseBrowserLang];
+
+		// 然后检查基础语言代码
+		const baseLang = normalized.split('-')[0];
+		if (obsidianLanguageMap[baseLang]) {
+			return obsidianLanguageMap[baseLang];
+		}
 	} catch (e) {
 		console.warn('Failed to detect Obsidian language:', e);
 	}

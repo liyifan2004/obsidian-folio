@@ -1,6 +1,17 @@
-import { App, PluginSettingTab, Setting, SliderComponent } from 'obsidian';
+import { App, PluginSettingTab, Setting, setIcon } from 'obsidian';
 import DualPaneSyncPlugin from '../main';
 import { t } from './types';
+
+interface CommandInfo {
+	name: string;
+	icon: string;
+}
+
+interface FeatureInfo {
+	icon: string;
+	title: string;
+	desc: string;
+}
 
 export class DualPaneSettingTab extends PluginSettingTab {
 	plugin: DualPaneSyncPlugin;
@@ -15,13 +26,15 @@ export class DualPaneSettingTab extends PluginSettingTab {
 		containerEl.empty();
 
 		// ========== 标题 ==========
-		containerEl.createEl('h2', { text: t('ribbonTooltip') });
+		new Setting(containerEl)
+			.setName(t('ribbonTooltip'))
+			.setHeading();
 
 		// ========== 重叠行数设置 ==========
 		new Setting(containerEl)
 			.setName(t('settingOverlap'))
 			.setDesc(t('settingOverlapDesc'))
-			.addSlider((slider: SliderComponent) => {
+			.addSlider((slider) => {
 				slider
 					.setLimits(0, 10, 1)
 					.setValue(this.plugin.settings.overlapLines)
@@ -39,9 +52,7 @@ export class DualPaneSettingTab extends PluginSettingTab {
 			.setHeading();
 
 		// ========== 命令列表 ==========
-		const commandsContainer = containerEl.createDiv('dual-pane-commands');
-		
-		const commands = [
+		const commands: CommandInfo[] = [
 			{ name: t('cmdToggle'), icon: 'columns' },
 			{ name: t('cmdToggleTriple'), icon: 'layout-grid' },
 			{ name: t('cmdStop'), icon: 'square' },
@@ -51,94 +62,63 @@ export class DualPaneSettingTab extends PluginSettingTab {
 			{ name: t('cmdDoublePageDown'), icon: 'chevrons-down' }
 		];
 
+		const commandsContainer = containerEl.createDiv('multifolio-commands');
 		for (const cmd of commands) {
-			const cmdEl = commandsContainer.createDiv('setting-item');
-			cmdEl.style.padding = '6px 0';
-			cmdEl.style.borderBottom = 'none';
-			
-			const iconEl = cmdEl.createSpan('setting-item-icon');
-			iconEl.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#${cmd.icon}"></use></svg>`;
-			
-			const nameEl = cmdEl.createSpan('setting-item-name');
-			nameEl.style.marginLeft = '8px';
-			nameEl.textContent = cmd.name;
+			const cmdEl = commandsContainer.createDiv('multifolio-command');
+			const iconEl = cmdEl.createSpan('multifolio-command-icon');
+			setIcon(iconEl, cmd.icon);
+			cmdEl.createSpan({ cls: 'multifolio-command-name', text: cmd.name });
 		}
 
 		// ========== 功能说明 ==========
-		const featureContainer = containerEl.createDiv('dual-pane-features');
-		featureContainer.style.marginTop = '24px';
+		new Setting(containerEl)
+			.setName(t('docs'))
+			.setHeading();
 
-		featureContainer.createEl('h3', { text: t('docs') });
+		const features: FeatureInfo[] = [
+			{
+				icon: 'columns',
+				title: t('menuDualMode'),
+				desc: t('featureSyncDesc')
+			},
+			{
+				icon: 'layout-grid',
+				title: t('menuTripleMode'),
+				desc: t('featureTripleDesc')
+			},
+			{
+				icon: 'arrow-down-up',
+				title: t('featureSync'),
+				desc: t('featurePageUpDesc') + ' / ' + t('featurePageDownDesc')
+			}
+		];
 
-		// 双栏模式说明
-		const dualPaneFeature = featureContainer.createDiv('feature-item');
-		dualPaneFeature.style.marginBottom = '16px';
-		dualPaneFeature.style.padding = '12px';
-		dualPaneFeature.style.backgroundColor = 'var(--background-modifier-form-field)';
-		dualPaneFeature.style.borderRadius = '6px';
-		
-		dualPaneFeature.createEl('h4', { 
-			text: '◪ ' + t('menuDualMode'),
-			cls: 'feature-title'
-		});
-		dualPaneFeature.createEl('p', { 
-			text: t('featureSyncDesc'),
-			cls: 'feature-desc'
-		});
-
-		// 三栏模式说明
-		const triplePaneFeature = featureContainer.createDiv('feature-item');
-		triplePaneFeature.style.marginBottom = '16px';
-		triplePaneFeature.style.padding = '12px';
-		triplePaneFeature.style.backgroundColor = 'var(--background-modifier-form-field)';
-		triplePaneFeature.style.borderRadius = '6px';
-		
-		triplePaneFeature.createEl('h4', { 
-			text: '▦ ' + t('menuTripleMode'),
-			cls: 'feature-title'
-		});
-		triplePaneFeature.createEl('p', { 
-			text: t('featureTripleDesc'),
-			cls: 'feature-desc'
-		});
-
-		// 翻页说明
-		const pageFeature = featureContainer.createDiv('feature-item');
-		pageFeature.style.marginBottom = '16px';
-		pageFeature.style.padding = '12px';
-		pageFeature.style.backgroundColor = 'var(--background-modifier-form-field)';
-		pageFeature.style.borderRadius = '6px';
-		
-		pageFeature.createEl('h4', { 
-			text: '⇅ ' + t('featureSync'),
-			cls: 'feature-title'
-		});
-		pageFeature.createEl('p', { 
-			text: t('featurePageUpDesc') + ' / ' + t('featurePageDownDesc'),
-			cls: 'feature-desc'
-		});
+		for (const feature of features) {
+			const itemEl = containerEl.createDiv('multifolio-feature');
+			const titleEl = itemEl.createDiv('multifolio-feature-title');
+			const iconEl = titleEl.createSpan('multifolio-feature-icon');
+			setIcon(iconEl, feature.icon);
+			titleEl.createSpan({ cls: 'multifolio-feature-name', text: feature.title });
+			itemEl.createDiv({ cls: 'multifolio-feature-desc', text: feature.desc });
+		}
 
 		// ========== 支持链接 ==========
-		const supportContainer = containerEl.createDiv('dual-pane-support');
-		supportContainer.style.marginTop = '24px';
-		supportContainer.style.paddingTop = '16px';
-		supportContainer.style.borderTop = '1px solid var(--background-modifier-border)';
+		new Setting(containerEl)
+			.setName(t('support'))
+			.setHeading();
 
-		supportContainer.createEl('h3', { text: t('support') });
-
-		const linksContainer = supportContainer.createDiv('setting-item');
-		
-		const docsLink = linksContainer.createEl('a', {
+		const linksContainer = containerEl.createDiv('multifolio-links');
+		linksContainer.createEl('a', {
 			href: 'https://github.com/liyifan2004/obsidian-folio',
-			text: '📖 ' + t('docs')
+			cls: 'multifolio-link',
+			text: t('docs'),
+			attr: { target: '_blank', rel: 'noopener' }
 		});
-		docsLink.style.marginRight = '16px';
-		docsLink.target = '_blank';
-
-		const feedbackLink = linksContainer.createEl('a', {
+		linksContainer.createEl('a', {
 			href: 'https://github.com/liyifan2004/obsidian-folio/issues',
-			text: '🐛 ' + t('feedback')
+			cls: 'multifolio-link',
+			text: t('feedback'),
+			attr: { target: '_blank', rel: 'noopener' }
 		});
-		feedbackLink.target = '_blank';
 	}
 }

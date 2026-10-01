@@ -139,7 +139,7 @@ Interface language is automatically detected from Obsidian settings. Supports:
 
 ## 🔧 Compatibility
 
-- Obsidian v0.15.0+
+- Obsidian v1.8.7+
 - Desktop: Windows, macOS, Linux
 - Supports Edit, Preview, and Source modes
 - Works with all Markdown content
