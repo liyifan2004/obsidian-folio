@@ -7,7 +7,7 @@ import {
 	Workspace
 } from 'obsidian';
 		  
-import { DualPanePluginSettings, t, detectObsidianLanguage, setLanguage } from './types';
+import { DualPanePluginSettings, t } from './types';
 
 export type ViewMode = 'dual' | 'triple';
 
@@ -17,24 +17,33 @@ export type ViewMode = 'dual' | 'triple';
 export class DualPaneFollowMode {
 	private workspace: Workspace;
 	private settings: DualPanePluginSettings;
-	
+
 	private mainLeaf: WorkspaceLeaf | null = null;
 	private leftFollowLeaf: WorkspaceLeaf | null = null;
 	private rightFollowLeaf: WorkspaceLeaf | null = null;
-	
+
+	// 窗格身份注册表：停止后仍保留，供重启时复用/回收自有跟随窗格（O-002）
+	private followerRegistry: {
+		main: WorkspaceLeaf | null;
+		left: WorkspaceLeaf | null;
+		right: WorkspaceLeaf | null;
+	} = { main: null, left: null, right: null };
+
 	private isActive: boolean = false;
 	private currentMode: ViewMode = 'dual';
-	
+
 	private scrollCleanups: (() => void)[] = [];
-	private layoutChangeRef: (() => void) | null = null;
-	private modeChangeInterval: number | null = null;
+	private eventRemovers: (() => void)[] = [];
 	private resizeObserver: ResizeObserver | null = null;
-	private fileChangeInterval: number | null = null;
 	private resizeDebounceTimer: number | null = null;
+	private reconcileDebounceTimer: number | null = null;
+	private fallbackInterval: number | null = null;
+	private lastMainMode: string | null = null;
+	private isReconciling: boolean = false;
 
 	private isSyncing: boolean = false;
 	private isResizing: boolean = false;
-	
+
 	// 使用更稳定的同步：保存主窗口的滚动比例和具体位置
 	private mainScrollRatio: number = 0;  // 0-1 之间的比例
 	private mainScrollTop: number = 0;    // 具体像素值
@@ -42,9 +51,6 @@ export class DualPaneFollowMode {
 	constructor(workspace: Workspace, settings: DualPanePluginSettings) {
 		this.workspace = workspace;
 		this.settings = settings;
-		
-		const detectedLang = detectObsidianLanguage();
-		setLanguage(detectedLang);
 	}
 
 	isFollowing(): boolean {
@@ -57,26 +63,36 @@ export class DualPaneFollowMode {
 
 	/**
 	 * 启动跟随模式
+	 * opts.mainLeaf：模式切换时指定主窗格，避免因焦点漂移选错主窗格
 	 */
-	async startFollowMode(mode: ViewMode = 'dual'): Promise<boolean> {
+	async startFollowMode(mode: ViewMode = 'dual', opts?: { mainLeaf?: WorkspaceLeaf }): Promise<boolean> {
 		if (this.isActive) {
-			this.stopFollowMode();
+			this.stopFollowMode({ silent: true });
 		}
 
-		const activeLeaf = this.workspace.getMostRecentLeaf();
+		let activeLeaf = opts?.mainLeaf ?? this.workspace.getMostRecentLeaf();
 		if (!activeLeaf) {
 			new Notice(t('noticeNeedFile'));
 			return false;
 		}
 
-		const file = this.getLeafFile(activeLeaf);
+		let file = this.getLeafFile(activeLeaf);
 		if (!file) {
 			new Notice(t('noticeNotSupported'));
 			return false;
 		}
 
+		// 若当前窗格是注册表中的跟随窗格，而原主窗格仍可用且同文件，则恢复原角色（O-002）
+		if (this.isRegisteredFollower(activeLeaf) && this.followerRegistry.main
+			&& this.followerRegistry.main !== activeLeaf
+			&& this.isReusable(this.followerRegistry.main, file)) {
+			activeLeaf = this.followerRegistry.main;
+			file = this.getLeafFile(activeLeaf) ?? file;
+		}
+
 		this.currentMode = mode;
 		this.mainLeaf = activeLeaf;
+		this.unmarkFollowLeaf(activeLeaf);
 
 		// 保存当前精确的滚动状态
 		this.saveMainScrollState();
@@ -187,68 +203,81 @@ export class DualPaneFollowMode {
 	}
 
 	/**
-	 * 设置双栏模式
+	 * 设置双栏模式：复用/回收自有窗格，避免重复分栏（O-002）
 	 */
 	private async setupDualPane(file: TFile): Promise<void> {
-		const existingRight = this.findFollowLeaf(file, 'right');
-		if (existingRight && existingRight !== this.mainLeaf) {
-			this.rightFollowLeaf = existingRight;
-			this.markFollowLeaf(this.rightFollowLeaf, 'right');
-			return;
-		}
-
-		this.rightFollowLeaf = this.workspace.createLeafBySplit(this.mainLeaf!, 'vertical', false);
-		await new Promise(resolve => window.setTimeout(resolve, 200));
-		
-		const mainMode = this.getLeafMode(this.mainLeaf!);
-		await this.rightFollowLeaf.openFile(file, { state: { mode: mainMode } });
-		await this.waitForRender(this.rightFollowLeaf, 500);
-		
-		this.markFollowLeaf(this.rightFollowLeaf, 'right');
+		this.retireObsoleteFollowers('dual', file);
+		this.rightFollowLeaf = await this.acquireOrCreateFollower('right', file);
 	}
 
 	/**
 	 * 设置三栏模式
 	 */
 	private async setupTriplePane(file: TFile): Promise<void> {
-		this.closeExistingFollowWindows(file);
-
-		const mainMode = this.getLeafMode(this.mainLeaf!);
-
-		// 创建右跟随
-		this.rightFollowLeaf = this.workspace.createLeafBySplit(this.mainLeaf!, 'vertical', false);
-		await new Promise(resolve => window.setTimeout(resolve, 200));
-		await this.rightFollowLeaf.openFile(file, { state: { mode: mainMode } });
-		await this.waitForRender(this.rightFollowLeaf, 400);
-		this.markFollowLeaf(this.rightFollowLeaf, 'right');
-
-		// 创建左跟随
-		this.leftFollowLeaf = this.workspace.createLeafBySplit(this.mainLeaf!, 'vertical', true);
-		await new Promise(resolve => window.setTimeout(resolve, 200));
-		await this.leftFollowLeaf.openFile(file, { state: { mode: mainMode } });
-		await this.waitForRender(this.leftFollowLeaf, 400);
-		this.markFollowLeaf(this.leftFollowLeaf, 'left');
+		this.retireObsoleteFollowers('triple', file);
+		this.rightFollowLeaf = await this.acquireOrCreateFollower('right', file);
+		this.leftFollowLeaf = await this.acquireOrCreateFollower('left', file);
 	}
 
 	/**
-	 * 关闭已存在的跟随窗口
+	 * 回收目标模式不再需要的自有跟随窗格，并清理失效的注册项。
+	 * 只处理「本插件创建（在注册表中）且仍显示目标文件」的窗格；
+	 * 用户已接管（换了文件）的窗格一律不动。
 	 */
-	private closeExistingFollowWindows(file: TFile): void {
-		const leaves = this.workspace.getLeavesOfType('markdown');
-		for (const leaf of leaves) {
-			const view = leaf.view;
-			if (!(view instanceof MarkdownView)) continue;
-			
-			const contentEl = view.contentEl;
-			const isMarked = contentEl?.getAttribute('data-follow-mode') === 'left' ||
-							 contentEl?.getAttribute('data-follow-mode') === 'right';
-			
-			if (isMarked && view.file && view.file.path === file.path) {
-				if (leaf !== this.mainLeaf) {
-					leaf.detach();
-				}
+	private retireObsoleteFollowers(targetMode: ViewMode, file: TFile): void {
+		if (targetMode === 'dual') {
+			const left = this.followerRegistry.left;
+			if (left && left !== this.mainLeaf && this.isReusable(left, file)) {
+				left.detach();
+			}
+			this.followerRegistry.left = null;
+		}
+		for (const role of ['main', 'left', 'right'] as const) {
+			const leaf = this.followerRegistry[role];
+			if (leaf && !this.isLeafValid(leaf)) {
+				this.followerRegistry[role] = null;
 			}
 		}
+	}
+
+	/**
+	 * 取得跟随窗格：优先复用注册表；其次复用带标记的同文件窗格（插件重载场景）；否则新建
+	 */
+	private async acquireOrCreateFollower(role: 'left' | 'right', file: TFile): Promise<WorkspaceLeaf> {
+		const recorded = this.followerRegistry[role];
+		if (recorded && recorded !== this.mainLeaf && this.isReusable(recorded, file)) {
+			this.markFollowLeaf(recorded, role);
+			return recorded;
+		}
+
+		const marked = this.findFollowLeaf(file, role);
+		if (marked && marked !== this.mainLeaf) {
+			this.markFollowLeaf(marked, role);
+			return marked;
+		}
+
+		const leaf = this.workspace.createLeafBySplit(this.mainLeaf!, 'vertical', role === 'left');
+		await new Promise(resolve => window.setTimeout(resolve, 200));
+
+		const mainMode = this.getLeafMode(this.mainLeaf!);
+		await leaf.openFile(file, { state: { mode: mainMode } });
+		await this.waitForRender(leaf, 500);
+
+		this.markFollowLeaf(leaf, role);
+		return leaf;
+	}
+
+	/**
+	 * 注册表窗格是否可复用：仍有效且显示目标文件
+	 */
+	private isReusable(leaf: WorkspaceLeaf, file: TFile): boolean {
+		if (!this.isLeafValid(leaf)) return false;
+		const current = this.getLeafFile(leaf);
+		return !!current && current.path === file.path;
+	}
+
+	private isRegisteredFollower(leaf: WorkspaceLeaf): boolean {
+		return this.followerRegistry.left === leaf || this.followerRegistry.right === leaf;
 	}
 
 	/**
@@ -256,12 +285,11 @@ export class DualPaneFollowMode {
 	 */
 	private setupFollow(): void {
 		if (!this.isActive) return;
-		
+
 		this.setupScrollSync();
-		this.setupLayoutListener();
-		this.setupModeChangeListener();
+		this.setupWorkspaceListeners();
 		this.setupResizeListener();
-		this.setupFileChangeListener();
+		this.setupFallbackPolling();
 	}
 
 	/**
@@ -297,15 +325,15 @@ export class DualPaneFollowMode {
 	}
 
 	/**
-	 * 附加滚动监听器
+	 * 附加滚动监听器（AbortController 统一清理）
 	 */
 	private attachScrollListener(container: HTMLElement, source: 'main' | 'left' | 'right'): (() => void) | null {
 		let rafId: number | null = null;
-		
+
 		const handler = () => {
 			if (this.isSyncing || this.isResizing) return;
 			if (rafId) return;
-			
+
 			rafId = window.requestAnimationFrame(() => {
 				rafId = null;
 				if (this.isActive && !this.isResizing) {
@@ -314,10 +342,11 @@ export class DualPaneFollowMode {
 			});
 		};
 
-		container.addEventListener('scroll', handler, { passive: true });
+		const controller = new AbortController();
+		container.addEventListener('scroll', handler, { passive: true, signal: controller.signal });
 
 		return () => {
-			container.removeEventListener('scroll', handler);
+			controller.abort();
 			if (rafId) window.cancelAnimationFrame(rafId);
 		};
 	}
@@ -369,77 +398,135 @@ export class DualPaneFollowMode {
 	}
 
 	/**
-	 * 设置文件变化监听 - 双向同步改进
+	 * 工作区事件驱动的状态对账（O-004）：
+	 * 文件切换/活动窗格/布局变化即时触发；模式切换无专用事件，由兜底轮询覆盖
 	 */
-	private setupFileChangeListener(): void {
-		if (this.fileChangeInterval) {
-			window.clearInterval(this.fileChangeInterval);
+	private setupWorkspaceListeners(): void {
+		const scheduleReconcile = () => {
+			if (this.reconcileDebounceTimer) {
+				window.clearTimeout(this.reconcileDebounceTimer);
+			}
+			this.reconcileDebounceTimer = window.setTimeout(() => {
+				this.reconcileDebounceTimer = null;
+				this.reconcile();
+			}, 100);
+		};
+
+		const onLayoutChange = () => {
+			window.setTimeout(() => this.checkAndCleanup(), 100);
+			scheduleReconcile();
+		};
+
+		const ref1 = this.workspace.on('layout-change', onLayoutChange);
+		const ref2 = this.workspace.on('file-open', scheduleReconcile);
+		const ref3 = this.workspace.on('active-leaf-change', scheduleReconcile);
+		this.eventRemovers.push(
+			() => this.workspace.offref(ref1),
+			() => this.workspace.offref(ref2),
+			() => this.workspace.offref(ref3)
+		);
+	}
+
+	/**
+	 * 低频兜底轮询（500ms）：检查主窗格模式切换（无专用事件），兼作事件遗漏兜底
+	 */
+	private setupFallbackPolling(): void {
+		if (this.fallbackInterval) {
+			window.clearInterval(this.fallbackInterval);
 		}
 
-		// 轮询检查所有窗口的文件
-		this.fileChangeInterval = window.setInterval(() => {
+		this.lastMainMode = this.mainLeaf ? this.getLeafMode(this.mainLeaf) : null;
+
+		this.fallbackInterval = window.setInterval(() => {
 			if (!this.isActive || !this.mainLeaf) return;
+			this.reconcile();
+			this.checkMainModeChange();
+		}, 500);
+	}
 
-			// 获取所有窗口的当前文件
-			const mainFile = this.getLeafFile(this.mainLeaf);
-			const leftFile = this.leftFollowLeaf ? this.getLeafFile(this.leftFollowLeaf) : null;
-			const rightFile = this.rightFollowLeaf ? this.getLeafFile(this.rightFollowLeaf) : null;
+	private checkMainModeChange(): void {
+		if (!this.mainLeaf) return;
 
-			// 确定参考文件（以最后变化的为准）
-			let targetFile: TFile | null = null;
-			let source: 'main' | 'left' | 'right' | null = null;
+		const currentMode = this.getLeafMode(this.mainLeaf);
+		if (currentMode !== this.lastMainMode) {
+			this.lastMainMode = currentMode;
+			this.setupScrollSync();
+			window.setTimeout(() => this.forceSyncAll(), 300);
+		}
+	}
 
-			// 检查主窗口是否变化
-			if (mainFile && (!leftFile || mainFile.path !== leftFile.path) && 
-				(!rightFile || mainFile.path !== rightFile.path)) {
-				targetFile = mainFile;
-				source = 'main';
-			}
-			// 检查左窗口是否变化
-			else if (leftFile && leftFile.path !== mainFile?.path) {
-				targetFile = leftFile;
-				source = 'left';
-			}
-			// 检查右窗口是否变化
-			else if (rightFile && rightFile.path !== mainFile?.path) {
-				targetFile = rightFile;
-				source = 'right';
-			}
+	/**
+	 * 对账：任一窗格文件与其余不一致时，以偏离者为源同步全部窗格
+	 */
+	private reconcile(): void {
+		if (!this.isActive || !this.mainLeaf || this.isReconciling) return;
 
-			// 如果有变化，同步所有窗口
-			if (targetFile && source) {
-				void this.syncAllToFile(targetFile, source);
-			}
-		}, 400);
+		// 获取所有窗口的当前文件
+		const mainFile = this.getLeafFile(this.mainLeaf);
+		const leftFile = this.leftFollowLeaf ? this.getLeafFile(this.leftFollowLeaf) : null;
+		const rightFile = this.rightFollowLeaf ? this.getLeafFile(this.rightFollowLeaf) : null;
+
+		// 确定参考文件（以最后变化的为准）
+		let targetFile: TFile | null = null;
+		let source: 'main' | 'left' | 'right' | null = null;
+
+		// 检查主窗口是否变化
+		if (mainFile && (!leftFile || mainFile.path !== leftFile.path) &&
+			(!rightFile || mainFile.path !== rightFile.path)) {
+			targetFile = mainFile;
+			source = 'main';
+		}
+		// 检查左窗口是否变化
+		else if (leftFile && leftFile.path !== mainFile?.path) {
+			targetFile = leftFile;
+			source = 'left';
+		}
+		// 检查右窗口是否变化
+		else if (rightFile && rightFile.path !== mainFile?.path) {
+			targetFile = rightFile;
+			source = 'right';
+		}
+
+		// 如果有变化，同步所有窗口
+		if (targetFile && source) {
+			void this.syncAllToFile(targetFile, source);
+		}
 	}
 
 	/**
 	 * 同步所有窗口到指定文件
 	 */
 	private async syncAllToFile(file: TFile, source: 'main' | 'left' | 'right'): Promise<void> {
-		// 获取源窗口的模式
-		let sourceLeaf: WorkspaceLeaf | null = null;
-		if (source === 'main') sourceLeaf = this.mainLeaf;
-		else if (source === 'left') sourceLeaf = this.leftFollowLeaf;
-		else if (source === 'right') sourceLeaf = this.rightFollowLeaf;
+		if (this.isReconciling) return;
+		this.isReconciling = true;
 
-		if (!sourceLeaf) return;
+		try {
+			// 获取源窗口的模式
+			let sourceLeaf: WorkspaceLeaf | null = null;
+			if (source === 'main') sourceLeaf = this.mainLeaf;
+			else if (source === 'left') sourceLeaf = this.leftFollowLeaf;
+			else if (source === 'right') sourceLeaf = this.rightFollowLeaf;
 
-		const targetMode = this.getLeafMode(sourceLeaf);
+			if (!sourceLeaf) return;
 
-		// 同步其他窗口
-		const syncLeaf = async (leaf: WorkspaceLeaf | null) => {
-			if (!leaf || leaf === sourceLeaf) return;
-			
-			const currentFile = this.getLeafFile(leaf);
-			if (!currentFile || currentFile.path !== file.path) {
-				await leaf.openFile(file, { state: { mode: targetMode } });
-			}
-		};
+			const targetMode = this.getLeafMode(sourceLeaf);
 
-		await syncLeaf(this.mainLeaf);
-		await syncLeaf(this.leftFollowLeaf);
-		await syncLeaf(this.rightFollowLeaf);
+			// 同步其他窗口
+			const syncLeaf = async (leaf: WorkspaceLeaf | null) => {
+				if (!leaf || leaf === sourceLeaf) return;
+
+				const currentFile = this.getLeafFile(leaf);
+				if (!currentFile || currentFile.path !== file.path) {
+					await leaf.openFile(file, { state: { mode: targetMode } });
+				}
+			};
+
+			await syncLeaf(this.mainLeaf);
+			await syncLeaf(this.leftFollowLeaf);
+			await syncLeaf(this.rightFollowLeaf);
+		} finally {
+			this.isReconciling = false;
+		}
 
 		// 等待加载完成后同步滚动
 		window.setTimeout(() => {
@@ -555,7 +642,18 @@ export class DualPaneFollowMode {
 			const containerEl = view.containerEl;
 			if (!containerEl) return null;
 
-			const mode = view.getState().mode;
+			// 优先使用公开 API getMode()（R-001），非 MarkdownView 回退到状态读取
+			let mode: string | undefined;
+			if (view instanceof MarkdownView) {
+				mode = view.getMode();
+			} else {
+				try {
+					const state = view.getState() as { mode?: string };
+					mode = state.mode;
+				} catch {
+					mode = undefined;
+				}
+			}
 
 			if (mode === 'preview') {
 				const previewView = containerEl.querySelector('.markdown-preview-view');
@@ -598,14 +696,28 @@ export class DualPaneFollowMode {
 	}
 
 	/**
-	 * 翻页
+	 * 翻页：跟随模式下滚动主窗格（其余窗格经同步跟随）；
+	 * 未激活时回退为滚动当前活动的 Markdown 视图（O-005）
 	 */
 	pageScroll(direction: 'up' | 'down'): void {
-		if (!this.mainLeaf) return;
+		let container: HTMLElement | null = null;
+
+		if (this.mainLeaf) {
+			container = this.getScrollContainer(this.mainLeaf.view);
+		}
+		if (!container) {
+			const activeView = this.workspace.getActiveViewOfType(MarkdownView);
+			if (activeView) {
+				container = this.getScrollContainer(activeView);
+			}
+		}
+		if (!container) {
+			new Notice(t('noticeNeedFile'));
+			return;
+		}
 
 		try {
-			const mainContainer = this.getScrollContainer(this.mainLeaf.view);
-			if (!mainContainer) return;
+			const mainContainer = container;
 
 			const paneHeight = mainContainer.clientHeight;
 			let newScrollTop = mainContainer.scrollTop;
@@ -626,59 +738,26 @@ export class DualPaneFollowMode {
 	}
 
 	/**
-	 * 监听模式变化
-	 */
-	private setupModeChangeListener(): void {
-		if (!this.mainLeaf) return;
-
-		let lastMode = this.getLeafMode(this.mainLeaf);
-
-		this.modeChangeInterval = window.setInterval(() => {
-			if (!this.isActive || !this.mainLeaf) return;
-
-			const currentMode = this.getLeafMode(this.mainLeaf);
-			if (currentMode !== lastMode) {
-				lastMode = currentMode;
-				this.setupScrollSync();
-				window.setTimeout(() => this.forceSyncAll(), 300);
-			}
-		}, 500);
-	}
-
-	/**
-	 * 设置布局监听
-	 */
-	private setupLayoutListener(): void {
-		const handler = () => {
-			window.setTimeout(() => this.checkAndCleanup(), 100);
-		};
-
-		this.workspace.on('layout-change', handler);
-		this.layoutChangeRef = () => {
-			this.workspace.off('layout-change', handler);
-		};
-	}
-
-	/**
 	 * 检查并清理
 	 */
 	private checkAndCleanup(): void {
 		if (!this.isActive) return;
 
 		if (this.mainLeaf && !this.isLeafValid(this.mainLeaf)) {
-			this.stopFollowMode();
+			this.stopFollowMode({ silent: true });
 			new Notice(t('noticeLeftClosed'));
 			return;
 		}
 
 		if (this.rightFollowLeaf && !this.isLeafValid(this.rightFollowLeaf)) {
-			this.stopFollowMode();
+			this.stopFollowMode({ silent: true });
 			new Notice(t('noticeRightClosed'));
 			return;
 		}
 
 		if (this.leftFollowLeaf && !this.isLeafValid(this.leftFollowLeaf)) {
 			this.leftFollowLeaf = null;
+			this.followerRegistry.left = null;
 			this.currentMode = 'dual';
 		}
 	}
@@ -696,13 +775,13 @@ export class DualPaneFollowMode {
 	}
 
 	/**
-	 * 获取 leaf 模式
+	 * 获取 leaf 模式（公开 API getMode()，R-001）
 	 */
 	private getLeafMode(leaf: WorkspaceLeaf): 'preview' | 'source' {
 		try {
 			const view = leaf.view;
 			if (view instanceof MarkdownView) {
-				const mode = view.getState().mode;
+				const mode = view.getMode();
 				if (mode === 'source' || mode === 'preview') {
 					return mode;
 				}
@@ -771,22 +850,13 @@ export class DualPaneFollowMode {
 	}
 
 	/**
-	 * 停止跟随模式
+	 * 停止跟随模式（silent：内部转换时抑制「已停止」通知，O-003）
 	 */
-	stopFollowMode(): void {
+	stopFollowMode(options?: { silent?: boolean }): void {
 		if (!this.isActive) return;
 		this.cleanup();
-		new Notice(t('noticeStopped'));
-	}
-
-	/**
-	 * 切换跟随模式
-	 */
-	toggleFollowMode(): void {
-		if (this.isActive) {
-			this.stopFollowMode();
-		} else {
-			void this.startFollowMode('dual');
+		if (!options?.silent) {
+			new Notice(t('noticeStopped'));
 		}
 	}
 
@@ -798,8 +868,9 @@ export class DualPaneFollowMode {
 			const currentFile = this.getLeafFile(this.mainLeaf!);
 			if (currentFile) {
 				this.saveMainScrollState();
-				this.stopFollowMode();
-				await this.startFollowMode(mode);
+				const mainLeaf = this.mainLeaf!;
+				this.stopFollowMode({ silent: true });
+				await this.startFollowMode(mode, { mainLeaf });
 			}
 		} else {
 			await this.startFollowMode(mode);
@@ -807,20 +878,37 @@ export class DualPaneFollowMode {
 	}
 
 	/**
+	 * 插件卸载：静默清理。保留窗格标记，便于插件重载后重新识别自有窗格（O-002）
+	 */
+	destroy(): void {
+		this.cleanup({ keepMarks: true });
+	}
+
+	/**
 	 * 清理资源
 	 */
-	private cleanup(): void {
+	private cleanup(options?: { keepMarks?: boolean }): void {
+		// 记录窗格身份，供下次启动复用/回收（O-002）
+		this.followerRegistry = {
+			main: this.mainLeaf,
+			left: this.leftFollowLeaf,
+			right: this.rightFollowLeaf
+		};
+
 		this.scrollCleanups.forEach(cleanup => cleanup());
 		this.scrollCleanups = [];
 
-		if (this.layoutChangeRef) {
-			this.layoutChangeRef();
-			this.layoutChangeRef = null;
+		this.eventRemovers.forEach(remove => remove());
+		this.eventRemovers = [];
+
+		if (this.reconcileDebounceTimer) {
+			window.clearTimeout(this.reconcileDebounceTimer);
+			this.reconcileDebounceTimer = null;
 		}
 
-		if (this.modeChangeInterval) {
-			window.clearInterval(this.modeChangeInterval);
-			this.modeChangeInterval = null;
+		if (this.fallbackInterval) {
+			window.clearInterval(this.fallbackInterval);
+			this.fallbackInterval = null;
 		}
 
 		if (this.resizeObserver) {
@@ -828,21 +916,18 @@ export class DualPaneFollowMode {
 			this.resizeObserver = null;
 		}
 
-		if (this.fileChangeInterval) {
-			window.clearInterval(this.fileChangeInterval);
-			this.fileChangeInterval = null;
-		}
-
 		if (this.resizeDebounceTimer) {
 			window.clearTimeout(this.resizeDebounceTimer);
 			this.resizeDebounceTimer = null;
 		}
 
-		if (this.rightFollowLeaf) {
-			this.unmarkFollowLeaf(this.rightFollowLeaf);
-		}
-		if (this.leftFollowLeaf) {
-			this.unmarkFollowLeaf(this.leftFollowLeaf);
+		if (!options?.keepMarks) {
+			if (this.rightFollowLeaf) {
+				this.unmarkFollowLeaf(this.rightFollowLeaf);
+			}
+			if (this.leftFollowLeaf) {
+				this.unmarkFollowLeaf(this.leftFollowLeaf);
+			}
 		}
 
 		this.mainLeaf = null;
@@ -850,6 +935,7 @@ export class DualPaneFollowMode {
 		this.leftFollowLeaf = null;
 		this.isActive = false;
 		this.isResizing = false;
+		this.isReconciling = false;
 	}
 
 	/**

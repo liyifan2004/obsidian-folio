@@ -8,8 +8,8 @@ import { DualPanePluginSettings, DEFAULT_SETTINGS, t, detectObsidianLanguage, se
 import { DualPaneSettingTab } from './src/settings';
 
 /**
- * Dual Pane Sync Plugin
- * 
+ * MultiFolio - 多栏工作区插件
+ *
  * Features:
  * - Dual Pane Mode: Main editor + Right follower (next screen)
  * - Triple Pane Mode: Left follower (prev) + Main editor + Right follower (next)
@@ -101,9 +101,9 @@ export default class DualPaneSyncPlugin extends Plugin {
 	}
 
 	onunload() {
-		// 清理资源
+		// 静默清理资源（保留窗格标记以便重载后识别，O-002）
 		if (this.followMode) {
-			this.followMode.stopFollowMode();
+			this.followMode.destroy();
 		}
 	}
 
@@ -177,18 +177,8 @@ export default class DualPaneSyncPlugin extends Plugin {
 	}
 
 	async saveSettings() {
+		// 跟随引擎持有的 settings 与本对象为同一引用，doSync 每次实时读取，
+		// 无需重建引擎实例（重建会造成监听器/定时器泄漏，O-001）
 		await this.saveData(this.settings);
-		// 更新跟随模式的设置
-		if (this.followMode) {
-			// 重新创建跟随模式实例以使用新设置
-			const isFollowing = this.followMode.isFollowing();
-			const currentMode = this.followMode.getCurrentMode();
-			this.followMode = new DualPaneFollowMode(this.app.workspace, this.settings);
-			
-			// 如果之前正在跟随，需要重新启动
-			if (isFollowing) {
-				await this.followMode.startFollowMode(currentMode);
-			}
-		}
 	}
 }
