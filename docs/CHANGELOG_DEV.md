@@ -29,3 +29,15 @@
 - 移动端全功能待实机核实（manifest `isDesktopOnly: false`）。
 
 **文档同步**：FEATURE_LEDGER（O 状态、受影响 F 条目、架构速览、更新记录）已同步；TECHNICAL_REFERENCES 为本次新增。
+
+**提交**：`505678e`（fix：O-001–O-005 代码）、`4f007c5`（docs：账簿/技术参考/开发记录）。
+
+## 2026-10-23 第二批：语言手动选择（O-007 → F-020）
+
+**目标与完成内容**：消化 O-007 死代码/残留文案——把预留的语言选择做成功能，而非删除文案。
+
+**关键文件**：`src/types.ts`（`LanguageSetting`、`resolveLanguage`（非法值回退自动检测）、`settingLanguageAuto` 新键 ×9、`settingLanguageDesc` ×9 更新）；`src/settings.ts`（语言下拉：自动 + 9 语言，切换即生效并重绘）；`main.ts`（onload 按 `resolveLanguage` 应用）。
+
+**方案与理由**：持久化字段 `language: 'auto' | 语言码`（缺省 auto，向后兼容）；命令名为注册时固化，无法动态改名，故在设置描述中注明「重载后更新」而非引入额外弹窗。原 `settingLanguage*` 文案键、`getLanguageName`/`getAvailableLanguages` 导出全部投入使用；`getCurrentLanguage`、`totalChars`/`currPos` 仍为残留（低价值，留待 i18n 清理）。
+
+**测试与结果**：`npm run lint` 0 error（同一既有警告）；`npm run build` 通过；grep 确认 `settingLanguageAuto` 9 处齐全。**未做**：实机验证（下拉交互与切换即时生效待手测）。

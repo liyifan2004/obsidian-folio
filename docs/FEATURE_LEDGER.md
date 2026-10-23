@@ -75,7 +75,8 @@ flowchart TD
 | F-016 | 窗格关闭自动停止/降级 | 自动 | 已实现 | 源码核对 |
 | F-017 | 启动/切换时滚动位置保持 | 自动 | 已实现 | 源码核对 |
 | F-018 | 跟随窗格标题标记 | 自动 | 已实现 | 源码核对 |
-| F-019 | 双↔三栏切换 | 命令 / 菜单 | 已实现（有缺陷，见 O-002） | 源码核对 |
+| F-019 | 双↔三栏切换 | 命令 / 菜单 | 已实现（2026-10-23 重构） | 源码核对 |
+| F-020 | 语言手动选择 | 设置页下拉 | 已实现 | 源码核对 + lint/build |
 
 ## 功能明细
 
@@ -162,14 +163,14 @@ flowchart TD
 
 ### F-011 多语言界面
 
-- 用户价值：9 种语言界面（en/zh/zh-TW/ja/ko/fr/de/es/ar），随 Obsidian 语言自动切换。
-- 用户入口：无设置项，启动时自动检测（`getLanguage()`，Obsidian ≥1.8.7）。
+- 用户价值：9 种语言界面（en/zh/zh-TW/ja/ko/fr/de/es/ar），默认随 Obsidian 语言自动切换（可手动指定，见 F-020）。
+- 用户入口：默认自动检测（`getLanguage()`，Obsidian ≥1.8.7）；手动覆盖见 F-020。
 - 预期行为：完整代码优先于基础代码匹配（zh-TW > zh），未知语言回退英文；缺失键回退英文。
-- 实现位置：`types.ts` 全文（翻译表、`detectObsidianLanguage`、`t`）；调用点 `main.ts:28-29`、`followMode.ts:46-47`。
+- 实现位置：`types.ts` 全文（翻译表、`detectObsidianLanguage`、`resolveLanguage`、`t`）；调用点 `main.ts`（onload）、`settings.ts`。
 - 依赖与约束：`getLanguage()` 要求 minAppVersion 1.8.7（当前 manifest 即此值，原因在此）。
 - 状态：已实现。
-- 已知问题：存在「语言手动选择」的残留文案键（`settingLanguage`、`settingLanguageDesc`）与未使用的导出（`getLanguageName`、`getAvailableLanguages`、`getCurrentLanguage`），实际无该功能（O-007）；`t(key)` 参数未做键名类型约束；`totalChars`/`currPos` 等键为历史残留。
-- 关联：F-010、O-007。
+- 已知问题：`t(key)` 参数未做键名类型约束；`getCurrentLanguage()` 导出未被使用；`totalChars`/`currPos` 等键为历史残留（低价值，待下次 i18n 清理一并处理）。
+- 关联：F-010、F-020、O-007。
 
 ### F-012 滚动同步引擎
 
@@ -252,6 +253,18 @@ flowchart TD
 - 已知问题（残留边角）：插件**重载后**（注册表丢失、仅剩标记）若从跟随窗格启动，主窗格会选中该跟随窗格并新建右跟随，原主窗格成为无主窗格留在布局中（不复用不回收，非破坏性）；同会话内由注册表兜底，不受影响。
 - 关联：F-001、F-002、F-003、O-002、O-003。
 
+### F-020 语言手动选择
+
+- 用户价值：不跟随 Obsidian 界面语言时，固定用指定语言显示插件界面。
+- 用户入口：设置页「语言」下拉（自动 + 9 种语言，默认「自动」）。
+- 预期行为：选择即写入 `data.json`（`language: 'auto' | 语言码`），立即切换界面文案并重绘设置页；非法持久化值回退自动检测。命令名在注册时固化，需重载插件后更新（设置描述已注明）。
+- 实现位置：`types.ts`（`LanguageSetting`/`resolveLanguage`/`settingLanguageAuto` 翻译键）；`settings.ts`（下拉）；`main.ts`（onload 应用）。
+- 依赖与约束：持久化字段 `language`，向后兼容（旧 data.json 缺省即 `auto`）。
+- 状态：已实现（2026-10-23）。
+- 验证方式：lint/build 通过 + 源码核对；实机待验证（下拉交互、切换即时生效、命令名需重载的提示是否足够）。
+- 已知问题：命令名不即时更新（Obsidian 命令注册机制限制，无动态改名 API）。
+- 关联：F-011、O-007。
+
 ## 审查与优化清单
 
 优先级：P0 数据丢失/崩溃/核心不可用；P1 核心缺陷或高频障碍；P2 明确收益的改进；P3 低风险优化与探索。
@@ -265,7 +278,7 @@ flowchart TD
 | O-004 | P2 | 400ms+500ms 双常驻轮询，能耗与响应延迟 | followMode.ts:374-414、631-646 | 用 `file-open`/`active-leaf-change`/`layout-change` 事件驱动对账，保留 1 个低频定时器兜底模式切换 | ✅ 2026-10-23 完成（事件 + 500ms 兜底；`isReconciling` 防自触发回环） |
 | O-005 | P2 | 翻页命令未激活时静默失效 | followMode.ts:603-605 | 未激活时回退作用于当前活动 Markdown 视图（独立翻页），无活动视图才提示 | ✅ 2026-10-23 完成 |
 | O-006 | P3 | 设置页未实现 `getSettingDefinitions()`，Obsidian 1.13+ 设置搜索不收录 | eslint warning（基线即存在） | 评估声明式 API 与 minAppVersion 1.8.7 的兼容后决定；纯增量改进 | ⛔ 已决策不采纳（API 需 1.13+，见 TECHNICAL_REFERENCES R-003）；lint 警告保留为已知 |
-| O-007 | P3 | 死代码/残留文案：语言选择文案键、未用导出、未用 i18n 键 | types.ts（键/导出比对调用点） | 与「语言手动选择」功能决策一并处理（实现或删除） | 📌 已决策：后续实现「语言手动选择」设置（复用现有文案键与导出），届时消除残留 |
+| O-007 | P3 | 死代码/残留文案：语言选择文案键、未用导出、未用 i18n 键 | types.ts（键/导出比对调用点） | 与「语言手动选择」功能决策一并处理（实现或删除） | ✅ 2026-10-23 完成（实现语言手动选择 F-020，文案键与 getLanguageName/getAvailableLanguages 均已投入使用）；`getCurrentLanguage`/`totalChars`/`currPos` 残留留待 i18n 清理 |
 | O-008 | P3 | 三栏下侧栏反推主窗格 ±0.5 比例粗估，定位不精确 | followMode.ts:484、489 | 探索按像素锚点换算（主窗格可见区与侧栏可见区的绝对内容坐标映射）；参考 R-005「手动校准偏移」交互 | 🔍 探索中 |
 
 本轮未列入清单、仅记录的观察（证据不足以定为缺陷）：`waitForRender` 阈值经验值（关联 F-017）；`double-page` 50ms 间隔（F-006）；「主窗格被关后应否升补侧栏」的产品语义问题（F-016）；移动端实际表现（manifest `isDesktopOnly: false`，全部功能待实机核实）。
@@ -275,3 +288,4 @@ flowchart TD
 - 2026-01-xx（1.0.3 发布）：无账簿。
 - 2026-10-23：建立账簿（基于 1.0.3 源码全文核对）；完成架构速览、F-001–F-019 明细、O-001–O-008 优化清单。全部条目验证状态为「源码核对 + lint/build 通过」，实机验证待做。
 - 2026-10-23（同日第一批优化）：完成 O-001–O-005（P1×2 + P2×3），O-006/007 决策落定，O-008 记录候选方案。受影响条目已更新：F-001/002/003/004-007/009/013/014/016/018/019 及架构速览。变更要点：`saveSettings` 不再重建引擎；窗格身份注册表 + 复用/回收；静默停止通道；事件驱动对账 + 500ms 兜底；翻页命令未激活回退；`getMode()` 公开 API。验证：lint 0 error（1 个既有警告）、`tsc -noEmit` + esbuild 通过、全文件逐行复核。实机验证未做（本环境无 Obsidian），剩余风险记录于各条目。开发记录见 `CHANGELOG_DEV.md`。
+- 2026-10-23（同日第二批）：完成 O-007——实现语言手动选择（新增 F-020），`settingLanguage*` 文案键与 `getLanguageName`/`getAvailableLanguages` 投入使用；新增 `settingLanguageAuto` 键 ×9，`settingLanguageDesc` ×9 注明命令名需重载更新。F-011 同步更新。验证：lint/build 通过、grep 确认 9 键齐全。实机验证待做。工作已提交（git 提交 `505678e` 修复批、`4f007c5` 文档批、后续 F-020 批）。

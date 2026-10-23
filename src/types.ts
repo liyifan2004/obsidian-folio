@@ -50,7 +50,8 @@ const translations: Record<Language, Record<string, string>> = {
 		'settingOverlap': 'Content Overlap',
 		'settingOverlapDesc': 'Number of lines of overlap between panes (0-10)',
 		'settingLanguage': 'Language',
-		'settingLanguageDesc': 'Display language (auto-detected by default)',
+		'settingLanguageAuto': 'Auto (follow Obsidian)',
+		'settingLanguageDesc': 'Display language (auto-detected by default). Command names update after reloading the plugin.',
 		'settingHotkeys': 'Hotkeys',
 		'settingHotkeysDesc': 'Configure keyboard shortcuts in Obsidian Settings → Hotkeys',
 		
@@ -111,7 +112,8 @@ const translations: Record<Language, Record<string, string>> = {
 		'settingOverlap': '内容重叠行数',
 		'settingOverlapDesc': '两个窗格之间的重叠行数（0-10行）',
 		'settingLanguage': '语言',
-		'settingLanguageDesc': '显示语言（默认自动检测）',
+		'settingLanguageAuto': '自动（跟随 Obsidian）',
+		'settingLanguageDesc': '显示语言（默认自动检测）。命令名称在重载插件后更新。',
 		'settingHotkeys': '快捷键',
 		'settingHotkeysDesc': '在 Obsidian 设置 → 快捷键中配置',
 		
@@ -172,7 +174,8 @@ const translations: Record<Language, Record<string, string>> = {
 		'settingOverlap': '內容重疊行數',
 		'settingOverlapDesc': '兩個窗格之間的重疊行數（0-10行）',
 		'settingLanguage': '語言',
-		'settingLanguageDesc': '顯示語言（預設自動檢測）',
+		'settingLanguageAuto': '自動（跟隨 Obsidian）',
+		'settingLanguageDesc': '顯示語言（預設自動檢測）。命令名稱在重載外掛後更新。',
 		'settingHotkeys': '快捷鍵',
 		'settingHotkeysDesc': '在 Obsidian 設定 → 快捷鍵中設定',
 		
@@ -233,7 +236,8 @@ const translations: Record<Language, Record<string, string>> = {
 		'settingOverlap': '内容の重複行数',
 		'settingOverlapDesc': 'ペイン間の重複行数（0-10行）',
 		'settingLanguage': '言語',
-		'settingLanguageDesc': '表示言語（デフォルトで自動検出）',
+		'settingLanguageAuto': '自動（Obsidian に合わせる）',
+		'settingLanguageDesc': '表示言語（デフォルトで自動検出）。コマンド名はプラグインの再読み込み後に更新されます。',
 		'settingHotkeys': 'ホットキー',
 		'settingHotkeysDesc': 'Obsidian 設定 → ホットキーで設定',
 		
@@ -294,7 +298,8 @@ const translations: Record<Language, Record<string, string>> = {
 		'settingOverlap': '콘텐츠 중복 줄 수',
 		'settingOverlapDesc': '창 간 중복 줄 수 (0-10줄)',
 		'settingLanguage': '언어',
-		'settingLanguageDesc': '표시 언어 (기본값: 자동 감지)',
+		'settingLanguageAuto': '자동 (Obsidian 설정 따름)',
+		'settingLanguageDesc': '표시 언어 (기본값: 자동 감지). 명령어 이름은 플러그인을 다시 로드한 후 업데이트됩니다.',
 		'settingHotkeys': '단축키',
 		'settingHotkeysDesc': 'Obsidian 설정 → 단축키에서 설정',
 		
@@ -355,7 +360,8 @@ const translations: Record<Language, Record<string, string>> = {
 		'settingOverlap': 'Chevauchement',
 		'settingOverlapDesc': "Nombre de lignes de chevauchement entre les volets (0-10)",
 		'settingLanguage': 'Langue',
-		'settingLanguageDesc': 'Langue d\'affichage (détection automatique par défaut)',
+		'settingLanguageAuto': 'Auto (suivre Obsidian)',
+		'settingLanguageDesc': 'Langue d\'affichage (détection automatique par défaut). Les noms de commandes sont mis à jour après rechargement du plugin.',
 		'settingHotkeys': 'Raccourcis',
 		'settingHotkeysDesc': 'Configurer dans Obsidian → Raccourcis',
 		
@@ -416,7 +422,8 @@ const translations: Record<Language, Record<string, string>> = {
 		'settingOverlap': 'Überlappung',
 		'settingOverlapDesc': 'Anzahl der überlappenden Zeilen (0-10)',
 		'settingLanguage': 'Sprache',
-		'settingLanguageDesc': 'Anzeigesprache (Standard: automatisch)',
+		'settingLanguageAuto': 'Automatisch (Obsidian folgen)',
+		'settingLanguageDesc': 'Anzeigesprache (Standard: automatisch). Befehlsnamen werden nach dem Neuladen des Plugins aktualisiert.',
 		'settingHotkeys': 'Tastenkürzel',
 		'settingHotkeysDesc': 'In Obsidian Einstellungen → Tastenkürzel konfigurieren',
 		
@@ -477,7 +484,8 @@ const translations: Record<Language, Record<string, string>> = {
 		'settingOverlap': 'Solapamiento',
 		'settingOverlapDesc': 'Número de líneas de solapamiento (0-10)',
 		'settingLanguage': 'Idioma',
-		'settingLanguageDesc': 'Idioma de visualización (detección automática por defecto)',
+		'settingLanguageAuto': 'Automático (seguir Obsidian)',
+		'settingLanguageDesc': 'Idioma de visualización (detección automática por defecto). Los nombres de comandos se actualizan al recargar el complemento.',
 		'settingHotkeys': 'Atajos',
 		'settingHotkeysDesc': 'Configurar en Obsidian → Atajos',
 		
@@ -538,7 +546,8 @@ const translations: Record<Language, Record<string, string>> = {
 		'settingOverlap': 'التداخل',
 		'settingOverlapDesc': 'عدد أسطر التداخل (0-10)',
 		'settingLanguage': 'اللغة',
-		'settingLanguageDesc': 'لغة العرض (الكشف التلقائي افتراضيًا)',
+		'settingLanguageAuto': 'تلقائي (تبع Obsidian)',
+		'settingLanguageDesc': 'لغة العرض (الكشف التلقائي افتراضيًا). تُحدَّث أسماء الأوامر بعد إعادة تحميل الإضافة.',
 		'settingHotkeys': 'اختصارات لوحة المفاتيح',
 		'settingHotkeysDesc': 'تكوين في إعدادات Obsidian → اختصارات',
 		
@@ -661,8 +670,23 @@ export function getAvailableLanguages(): Language[] {
 // 插件设置接口
 export interface DualPanePluginSettings {
 	overlapLines: number;
+	language: LanguageSetting;
 }
 
 export const DEFAULT_SETTINGS: DualPanePluginSettings = {
-	overlapLines: 2
+	overlapLines: 2,
+	language: 'auto'
 };
+
+// 语言设置：'auto' = 跟随 Obsidian 界面语言
+export type LanguageSetting = 'auto' | Language;
+
+/**
+ * 解析生效语言：'auto' 或非法值回退自动检测（O-007）
+ */
+export function resolveLanguage(setting: LanguageSetting): Language {
+	if (setting !== 'auto' && (setting as string) in languageNames) {
+		return setting;
+	}
+	return detectObsidianLanguage();
+}

@@ -1,6 +1,13 @@
 import { App, PluginSettingTab, Setting, setIcon } from 'obsidian';
 import DualPaneSyncPlugin from '../main';
-import { t } from './types';
+import {
+	t,
+	setLanguage,
+	resolveLanguage,
+	getAvailableLanguages,
+	getLanguageName,
+	LanguageSetting
+} from './types';
 
 interface CommandInfo {
 	name: string;
@@ -42,6 +49,26 @@ export class DualPaneSettingTab extends PluginSettingTab {
 					.onChange(async (value) => {
 						this.plugin.settings.overlapLines = value;
 						await this.plugin.saveSettings();
+					});
+			});
+
+		// ========== 语言设置 ==========
+		new Setting(containerEl)
+			.setName(t('settingLanguage'))
+			.setDesc(t('settingLanguageDesc'))
+			.addDropdown((dropdown) => {
+				dropdown.addOption('auto', t('settingLanguageAuto'));
+				for (const lang of getAvailableLanguages()) {
+					dropdown.addOption(lang, getLanguageName(lang));
+				}
+				dropdown
+					.setValue(this.plugin.settings.language)
+					.onChange(async (value) => {
+						this.plugin.settings.language = value as LanguageSetting;
+						setLanguage(resolveLanguage(this.plugin.settings.language));
+						await this.plugin.saveSettings();
+						// 重绘设置页，使界面立即使用新语言
+						this.display();
 					});
 			});
 

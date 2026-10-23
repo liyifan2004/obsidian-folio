@@ -4,7 +4,7 @@ import {
 	Notice
 } from 'obsidian';
 import { DualPaneFollowMode, ViewMode } from './src/followMode';
-import { DualPanePluginSettings, DEFAULT_SETTINGS, t, detectObsidianLanguage, setLanguage } from './src/types';
+import { DualPanePluginSettings, DEFAULT_SETTINGS, t, resolveLanguage, setLanguage } from './src/types';
 import { DualPaneSettingTab } from './src/settings';
 
 /**
@@ -24,9 +24,8 @@ export default class DualPaneSyncPlugin extends Plugin {
 	async onload() {
 		await this.loadSettings();
 		
-		// 检测并设置语言
-		const detectedLang = detectObsidianLanguage();
-		setLanguage(detectedLang);
+		// 按设置解析并应用语言（'auto' 跟随 Obsidian）
+		setLanguage(resolveLanguage(this.settings.language));
 		
 		// 初始化跟随模式
 		this.followMode = new DualPaneFollowMode(this.app.workspace, this.settings);
