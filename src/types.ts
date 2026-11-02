@@ -621,6 +621,16 @@ export function getCurrentLanguage(): Language {
 }
 
 /**
+ * 取得指定语言的翻译键列表。
+ *
+ * 供自动化测试校验 9 种语言的键集一致性（缺键会静默回退英文，
+ * 用户只会看到中英混排而没有任何报错）。
+ */
+export function getTranslationKeys(lang: Language): string[] {
+	return Object.keys(translations[lang] ?? {});
+}
+
+/**
  * 翻译函数
  */
 export function t(key: string): string {

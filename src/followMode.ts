@@ -8,6 +8,14 @@ import {
 } from 'obsidian';
 		  
 import { DualPanePluginSettings, t } from './types';
+import {
+	clampScroll,
+	leftScrollFromMain,
+	mainScrollFromLeft,
+	mainScrollFromRight,
+	pageScrollTarget,
+	rightScrollFromMain
+} from './scrollMath';
 
 export type ViewMode = 'dual' | 'triple';
 
@@ -538,6 +546,9 @@ export class DualPaneFollowMode {
 
 	/**
 	 * 执行同步 - 改进的长文档支持
+	 *
+	 * 全部换算走 src/scrollMath.ts 的像素几何，正向与反向严格互逆。
+	 * 旧实现用「±0.5 比例」反推主窗格位置，长文档上误差可达数万像素（O-008）。
 	 */
 	private doSync(source: 'main' | 'left' | 'right'): void {
 		if (!this.isActive || !this.mainLeaf || this.isResizing) return;
@@ -546,11 +557,11 @@ export class DualPaneFollowMode {
 			this.isSyncing = true;
 
 			const mainContainer = this.getScrollContainer(this.mainLeaf.view);
-			const rightContainer = this.rightFollowLeaf 
-				? this.getScrollContainer(this.rightFollowLeaf.view) 
+			const rightContainer = this.rightFollowLeaf
+				? this.getScrollContainer(this.rightFollowLeaf.view)
 				: null;
-			const leftContainer = this.leftFollowLeaf 
-				? this.getScrollContainer(this.leftFollowLeaf.view) 
+			const leftContainer = this.leftFollowLeaf
+				? this.getScrollContainer(this.leftFollowLeaf.view)
 				: null;
 
 			if (!mainContainer) {
@@ -558,71 +569,71 @@ export class DualPaneFollowMode {
 				return;
 			}
 
-			// 使用比例计算，更稳定
-			let mainRatio: number;
-			
-			if (source === 'main') {
-				const maxScroll = mainContainer.scrollHeight - mainContainer.clientHeight;
-				mainRatio = maxScroll > 0 ? mainContainer.scrollTop / maxScroll : 0;
-			} else if (source === 'left' && leftContainer) {
-				// 从左窗口计算主窗口比例
-				const leftMax = leftContainer.scrollHeight - leftContainer.clientHeight;
-				const leftRatio = leftMax > 0 ? leftContainer.scrollTop / leftMax : 0;
-				mainRatio = Math.min(1, leftRatio + 0.5); // 粗略估算
-			} else if (source === 'right' && rightContainer) {
-				// 从右窗口计算主窗口比例
-				const rightMax = rightContainer.scrollHeight - rightContainer.clientHeight;
-				const rightRatio = rightMax > 0 ? rightContainer.scrollTop / rightMax : 0;
-				mainRatio = Math.max(0, rightRatio - 0.5); // 粗略估算
-			} else {
-				this.isSyncing = false;
-				return;
-			}
+			const mainMaxScroll = mainContainer.scrollHeight - mainContainer.clientHeight;
 
 			// 获取当前行高（动态计算，适应字号变化）
 			const lineHeight = this.estimateLineHeight(mainContainer);
 			const overlapOffset = this.settings.overlapLines * lineHeight;
 
-			// 计算主窗口目标位置（像素）
-			const mainMaxScroll = mainContainer.scrollHeight - mainContainer.clientHeight;
-			const targetMainScroll = mainMaxScroll > 0 ? mainRatio * mainMaxScroll : 0;
-
-			// 计算跟随窗口的目标位置
-			// 关键：使用内容可见的连续性计算
+			// 先算出主窗格的目标像素位置。
+			// source === 'main' 时直接取当前值；来自跟随窗格时按几何逆运算反推。
+			let targetMainScroll: number;
 			let targetRightScroll: number | null = null;
-			if (rightContainer) {
-				// 右窗口应该显示主窗口底部附近的内容
-				const mainVisibleBottom = targetMainScroll + mainContainer.clientHeight;
-				// 考虑重叠
-				targetRightScroll = Math.max(0, mainVisibleBottom - overlapOffset);
-				// 限制范围
-				const rightMaxScroll = rightContainer.scrollHeight - rightContainer.clientHeight;
-				targetRightScroll = Math.min(targetRightScroll, rightMaxScroll);
+			let targetLeftScroll: number | null = null;
+
+			if (source === 'main') {
+				targetMainScroll = clampScroll(mainContainer.scrollTop, mainMaxScroll);
+			} else if (source === 'left' && leftContainer) {
+				targetMainScroll = mainScrollFromLeft(
+					leftContainer.scrollTop,
+					leftContainer.clientHeight,
+					overlapOffset,
+					mainMaxScroll
+				);
+			} else if (source === 'right' && rightContainer) {
+				targetMainScroll = mainScrollFromRight(
+					rightContainer.scrollTop,
+					mainContainer.clientHeight,
+					overlapOffset,
+					mainMaxScroll
+				);
+			} else {
+				this.isSyncing = false;
+				return;
 			}
 
-			let targetLeftScroll: number | null = null;
+			// 计算跟随窗口的目标位置（与主窗格目标位置严格互逆）
+			if (rightContainer) {
+				targetRightScroll = rightScrollFromMain(
+					targetMainScroll,
+					mainContainer.clientHeight,
+					overlapOffset,
+					rightContainer.scrollHeight - rightContainer.clientHeight
+				);
+			}
+
 			if (leftContainer) {
-				// 左窗口应该显示主窗口顶部之前的内容
-				// 考虑重叠
-				targetLeftScroll = Math.max(0, targetMainScroll - leftContainer.clientHeight + overlapOffset);
-				// 限制范围
-				const leftMaxScroll = leftContainer.scrollHeight - leftContainer.clientHeight;
-				targetLeftScroll = Math.min(targetLeftScroll, leftMaxScroll);
+				targetLeftScroll = leftScrollFromMain(
+					targetMainScroll,
+					leftContainer.clientHeight,
+					overlapOffset,
+					leftContainer.scrollHeight - leftContainer.clientHeight
+				);
 			}
 
 			// 应用滚动位置（跳过源窗口）
 			const threshold = 3; // 像素阈值
-			
+
 			if (source !== 'main' && Math.abs(mainContainer.scrollTop - targetMainScroll) > threshold) {
 				mainContainer.scrollTop = targetMainScroll;
 			}
 
-			if (source !== 'left' && leftContainer && targetLeftScroll !== null 
+			if (source !== 'left' && leftContainer && targetLeftScroll !== null
 				&& Math.abs(leftContainer.scrollTop - targetLeftScroll) > threshold) {
 				leftContainer.scrollTop = targetLeftScroll;
 			}
 
-			if (source !== 'right' && rightContainer && targetRightScroll !== null 
+			if (source !== 'right' && rightContainer && targetRightScroll !== null
 				&& Math.abs(rightContainer.scrollTop - targetRightScroll) > threshold) {
 				rightContainer.scrollTop = targetRightScroll;
 			}
@@ -719,19 +730,13 @@ export class DualPaneFollowMode {
 		try {
 			const mainContainer = container;
 
-			const paneHeight = mainContainer.clientHeight;
-			let newScrollTop = mainContainer.scrollTop;
-
-			if (direction === 'down') {
-				newScrollTop += paneHeight;
-			} else {
-				newScrollTop -= paneHeight;
-			}
-
 			const maxScroll = mainContainer.scrollHeight - mainContainer.clientHeight;
-			newScrollTop = Math.max(0, Math.min(newScrollTop, maxScroll));
-
-			mainContainer.scrollTop = newScrollTop;
+			mainContainer.scrollTop = pageScrollTarget(
+				mainContainer.scrollTop,
+				mainContainer.clientHeight,
+				direction,
+				maxScroll
+			);
 		} catch (error) {
 			console.error('翻页失败:', error);
 		}
