@@ -44,12 +44,12 @@ flowchart TD
     T -->|否则| W[switchMode → startFollowMode]
     W --> G[setupDualPane / setupTriplePane]
     G --> H[setupFollow: 滚动/布局/模式/尺寸/文件 监听]
-    H --> I[doSync 比例滚动同步]
+    H --> I[doSync 像素几何滚动同步]
 ```
 
 关键内部机制（所有功能共用）：
 
-- 滚动同步 `doSync(source)`：以主窗格滚动比例为基准，右跟随 = 主窗格可见底边 − 重叠偏移，左跟随 = 主窗格顶边 − 左窗格高 + 重叠偏移；从左/右窗格反推主窗格时用 ±0.5 比例粗估（followMode.ts:484、489，已知粗糙点）。
+- 滚动同步 `doSync(source)`：全部换算走 `src/scrollMath.ts` 的**真实像素几何**——右跟随 = 主窗格可见底边 − 重叠偏移，左跟随 = 主窗格顶边 − 左窗格高 + 重叠偏移；从左/右窗格反推主窗格时按同一几何做逆运算，正反向严格互逆（O-008 已修复，往返误差 0）。旧实现曾用 ±0.5 比例粗估，长文档上误差可达数万像素。
 - 同步节流：scroll 监听用 `requestAnimationFrame` 合帧；`isSyncing` 标志 16ms 内丢弃重入；`isResizing` 期间暂停同步。
 - 窗格身份：引擎内的**注册表**（main/left/right 三个 leaf 引用，跨停止保留）是身份主载体；`data-follow-mode="left|right"` 属性（`view.contentEl` 与 `.workspace-leaf` 双写）作视觉提示与插件重载场景兜底（F-018/F-019）。
 - 状态对账：`file-open`/`active-leaf-change`/`layout-change` 事件（100ms 防抖）+ 500ms 兜底轮询（兼查主窗格模式切换），文件不一致时以偏离者为源统一 `openFile`（F-013/F-014）。
@@ -184,7 +184,7 @@ flowchart TD
 - 状态：已实现（2026-11-02 修正反向换算，见 O-008）。
 - 验证方式：`test/scroll-math.test.ts` 17 例全绿——正向/反向严格互逆，往返误差 0。
 - 已知问题：`estimateLineHeight` 每次同步都查询 DOM（rAF 频率，量小，暂判可接受）。文档末端/首端饱和时跟随窗格已滚到底/顶，主窗格位置在信息上不可知，属固有限制而非计算误差。
-- 关联：F-001、F-002、F-015、F-017、O-008。
+- 关联：F-001、F-002、F-015、F-017、O-008、O-011。
 
 ### F-013 跨窗格文件一致（链接导航）
 
@@ -200,21 +200,21 @@ flowchart TD
 
 - 用户价值：主窗格切换编辑/阅读，跟随窗格同步切换，保持对比一致。
 - 用户入口：自动。
-- 预期行为：500ms 兜底轮询比对主窗格模式（`getMode()`，无专用事件），变化时重建滚动监听并在 300ms 后强制同步。
-- 实现位置：`followMode.ts`（setupFallbackPolling/checkMainModeChange）。
-- 状态：已实现。
-- 已知问题：模式切换最长 500ms 延迟（无事件可用，R-002）；跟随窗格模式由 F-013 的 openFile 带上，若 F-013 未触发则只重建监听不切换跟随窗格模式（跨功能缝隙，待实机核实实际表现）。
-- 关联：F-013、O-004。
+- 预期行为：500ms 兜底轮询比对主窗格模式（`getMode()`，无专用事件），变化时：①重建滚动监听；②**把跟随窗格切到同一模式**（`leaf.getViewState()` / `leaf.setViewState()`，`mode` + `source`）；③重建尺寸监听（滚动容器随模式切换换元素）；④300ms 后强制同步。
+- 实现位置：`followMode.ts`（setupFallbackPolling/checkMainModeChange/syncFollowerModes）。
+- 状态：已实现（2026-11-03 补齐跟随窗格模式切换，见 O-011）。
+- 已知问题：模式切换最长 500ms 延迟（无事件可用，R-002）；跟随窗格的 `source` 标记只区分「源码 / 实时预览」，不区分「实时预览 / 纯源码」两级编辑形态（Obsidian 侧 `mode:'source'` + `source:true/false`）。
+- 关联：F-013、O-004、O-011。
 
 ### F-015 尺寸变化重同步
 
 - 用户价值：调整栏宽/窗口大小后阅读位置不跑偏。
 - 用户入口：自动。
 - 预期行为：ResizeObserver 监听三个滚动容器与视图容器；变化时置 `isResizing` 暂停同步，150ms 防抖后强制重同步并复位标志。
-- 实现位置：`followMode.ts:328-369`。
-- 状态：已实现。
+- 实现位置：`followMode.ts`（setupResizeListener）。
+- 状态：已实现（2026-11-03 修复模式切换后监听失效，见 O-012）。
 - 已知问题：防抖期间若模式被停止，`isResizing` 由 cleanup 复位（已覆盖）；ResizeObserver 回调内多次 clear/set 定时器，逻辑正确但可读性一般。
-- 关联：F-012。
+- 关联：F-012、O-012。
 
 ### F-016 窗格关闭自动停止/降级
 
@@ -285,6 +285,9 @@ flowchart TD
 | O-008 | P3 | 三栏下侧栏反推主窗格 ±0.5 比例粗估，定位不精确 | followMode.ts:484、489 | 探索按像素锚点换算（主窗格可见区与侧栏可见区的绝对内容坐标映射）；参考 R-005「手动校准偏移」交互 | ✅ 2026-11-02 完成（改为像素几何逆运算，往返误差 0；新增 `src/scrollMath.ts` + 单元测试） |
 | O-009 | P2 | 仓库零自动化测试，所有行为只能靠源码核对与人工手测 | 本文件「状态词典」节原文自述；package.json 无 test 脚本 | 建立 vitest + Obsidian 桩模块测试体系，优先覆盖纯计算与 i18n 一致性这两类「不依赖 Obsidian 环境即可验证」的行为 | ✅ 2026-11-02 完成（28 个用例全绿） |
 | O-010 | P2 | 无 CI 工作流，lint/build 只在本地跑 | `.github/workflows/` 仅有 release.yml | 补 ci.yml，在 push/PR 上跑 typecheck → lint → stylelint → test → build | ✅ 2026-11-02 完成 |
+| O-011 | P1 | **跟随窗格不跟随主窗格的编辑/阅读模式切换**：主窗格切到阅读模式时，跟随窗格仍停在编辑模式 —— 账簿 F-014 原文已自述为「跨功能缝隙」。后果有二：①「同一文档的多视角」承诺破裂；②两种模式的滚动容器不同（`.cm-scroller` vs `.markdown-preview-view`），像素几何同步会把两个不同坐标系拿来互逆 | followMode.ts `checkMainModeChange` 只调 `setupScrollSync()`，无任何模式切换调用；`getLeafMode` 对跟随窗格只读不写 | 新增 `syncFollowerModes(mode)`：用 `leaf.getViewState()` 取当前状态、改写 `state.mode` 与 `state.source`、`leaf.setViewState()` 写回（社区通用的模式切换路径，兼容各版本） | ✅ 2026-11-03 完成 |
+| O-012 | P1 | **模式切换后尺寸监听静默失效**：滚动容器随模式切换换元素（`.cm-scroller` → `.markdown-preview-view`），但 ResizeObserver 仍在观察旧元素；旧节点脱离文档后不再触发回调，F-015「调整栏宽后位置不跑偏」在第一次模式切换之后就死了 | followMode.ts `checkMainModeChange` 未调用 `setupResizeListener()`；`setupResizeListener` 在 `setupFollow()` 里只于启动时执行一次 | 模式切换时同步重建 ResizeObserver（`setupResizeListener()` 内部先 `disconnect()` 再重新 observe，幂等） | ✅ 2026-11-03 完成 |
+| O-013 | P3 | 账簿「架构速览」仍描述旧的 ±0.5 比例粗估，与 O-008 已修复的实现冲突 | FEATURE_LEDGER.md:52（修复前）与 followMode.ts 实际代码不符 | 文档同步为像素几何描述 | ✅ 2026-11-03 完成 |
 
 本轮未列入清单、仅记录的观察（证据不足以定为缺陷）：`waitForRender` 阈值经验值（关联 F-017）；`double-page` 50ms 间隔（F-006）；「主窗格被关后应否升补侧栏」的产品语义问题（F-016）；移动端实际表现（manifest `isDesktopOnly: false`，全部功能待实机核实）。
 
@@ -299,3 +302,8 @@ flowchart TD
   - O-009：建立 vitest 测试体系（`vitest.config.mts` + `test/mocks/obsidian.ts` 桩模块 + `test/scroll-math.test.ts` + `test/i18n.test.ts`），共 28 例全绿。依赖升级：`@types/node` ^16→^22、`esbuild` 0.17.3→^0.28.0（vitest 5 的 peer 要求），与 jev/adaptive-workspace 对齐。
   - O-010：新增 `.github/workflows/ci.yml`（push/PR 跑 typecheck → lint → stylelint → test → build），并给 release.yml 补上 test 步骤，使发布产物必须来自测试通过的树。
   - 验证：`npm run typecheck` 通过；`npm run lint` 0 error（1 个既有警告 `settings-tab/prefer-setting-definitions`，属 O-006 已决策不采纳的项，基线未变）；`npm run lint:styles` 通过；`npm test` 28/28；`npm run build` 通过，产物中已无旧的 ±0.5 逻辑。**未做**：Obsidian 实机验证（本环境无 Obsidian）——重点手测项：三栏模式下从左/右窗格滚动时主窗格是否精确对齐（本次修复的核心场景）、双↔三切换不累积窗格、停止后重启复用窗格、拖动重叠滑块无副作用。
+- 2026-11-03（自动化轮）：完成 O-011（跟随窗格模式跟随）、O-012（模式切换后尺寸监听失效）、O-013（账簿文档漂移）。
+  - O-011：`checkMainModeChange` 新增 `syncFollowerModes(mode)`，用 `leaf.getViewState()` 取状态、改写 `state.mode` 与 `state.source`、`leaf.setViewState()` 写回。此前跟随窗格永不跟随主窗格的编辑/阅读切换（账簿 F-014 已自述为「跨功能缝隙」）。除产品一致性外还有几何后果：两种模式的滚动容器不同（`.cm-scroller` vs `.markdown-preview-view`），跨模式时像素几何同步会把两个不同坐标系拿来互逆。
+  - O-012：`checkMainModeChange` 增加 `setupResizeListener()`。滚动容器随模式切换换元素，旧 ResizeObserver 仍观察已脱离文档的旧节点 → 回调不再触发 → F-015 在第一次模式切换后静默失效。`setupResizeListener()` 内部先 `disconnect()` 再重新 observe，重复调用幂等。
+  - O-013：修正「架构速览」中仍描述旧 ±0.5 比例粗估的段落（原 FEATURE_LEDGER.md:52），与 2026-11-02 已完成的 O-008 实现冲突。
+  - 验证：`npm run verify`（typecheck → lint → stylelint → test → build）全通过；lint 0 error（1 个既有警告 `settings-tab/prefer-setting-definitions`，属 O-006 已决策不采纳项，基线未变）；`npm test` 28/28；`npm run build` 通过。**未做**：Obsidian 实机验证（本环境无 Obsidian）——重点手测项：主窗格切换编辑/阅读后跟随窗格是否同步切换、切换后拖动栏宽是否仍触发重同步（F-015 复活）、三栏模式下跨模式滚动是否仍精确对齐。

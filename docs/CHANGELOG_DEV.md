@@ -83,3 +83,40 @@
 - `getCurrentLanguage()` 导出仍未被使用，同上留待清理。
 
 **文档同步**：FEATURE_LEDGER 的架构速览、F-012 条目、O-008/009/010 条目、更新记录均已同步。
+
+---
+
+## 2026-11-03（自动化轮）：O-011 / O-012 / O-013
+
+### O-011 跟随窗格不跟随主窗格的编辑/阅读模式切换（P1）
+
+**问题证据**：`checkMainModeChange()` 在检测到主窗格模式变化后只做了两件事——`setupScrollSync()`（重建滚动监听）和 `forceSyncAll()`（强制同步滚动）。**没有任何调用改变跟随窗格的模式**。账簿 F-014 的「已知问题」栏其实已经自述了这个缺口：「跟随窗格模式由 F-013 的 openFile 带上，若 F-013 未触发则只重建监听不切换跟随窗格模式（跨功能缝隙）」。也就是说：主窗格单独切模式（F-013 不触发，因为文件没变）时，跟随窗格永远留在旧模式。
+
+**为什么这不只是"体验不一致"**：编辑模式与阅读模式的滚动容器根本不是同一个元素——编辑模式是 `.cm-scroller`（CodeMirror 6），阅读模式是 `.markdown-preview-view`。`doSync()` 的像素几何换算假设各窗格共享同一套坐标系；一旦一个窗格在 `.cm-scroller`、另一个在 `.markdown-preview-view`，两者的行高、缩进、行数都不同，O-008 刚修好的互逆关系立刻失效——主窗格会跳到完全错误的位置。
+
+**执行顺序（重要）**：本轮实现过程中发现一个顺序陷阱并已修正——**必须先切跟随窗格的模式，再重建滚动监听与尺寸监听**。因为模式切换会替换滚动容器元素，若先调用 `setupScrollSync()`，新绑定的监听器会挂在一个即将被替换掉的旧容器上，等于白绑。因此 `checkMainModeChange` 改为调用新的 `applyModeChange(mode)`，由它按「切模式 → 等渲染 → 重建监听 → 强制同步」的顺序串起来。
+
+**方案**：新增 `syncFollowerModes(mode)`，走 Obsidian 文档化的 `leaf.getViewState()` / `leaf.setViewState()` 一对 API：取出当前 view state，改写 `state.mode`（`'source'` / `'preview'`）与 `state.source`（`true` = 纯源码，`false` = 实时预览），再写回。这是社区驱动模式切换的通用路径（与 `markdown:toggle-preview` 命令底层一致），不依赖任何私有 API，兼容各版本。
+
+**为什么不直接调 `markdown:toggle-preview` 命令**：那是全局命令，作用于 active leaf，无法指定目标窗格。
+
+### O-012 模式切换后尺寸监听静默失效（P1）
+
+**问题证据**：`setupResizeListener()` 只在 `setupFollow()` 里调用一次（启动时）。而滚动容器是随模式切换更换元素的——旧容器（`.cm-scroller`）在模式切换后脱离文档，新容器（`.markdown-preview-view`）从未被 observe。`ResizeObserver` 观察的是**具体元素对象**，不是选择器，所以它会一直盯着那个已经脱离文档的旧节点：尺寸变化不再触发回调，F-015（调整栏宽后阅读位置不跑偏）在用户第一次切换模式之后就静默死掉了。
+
+**方案**：在 `applyModeChange()` 里（紧随模式切换之后）调用 `setupResizeListener()`。该方法内部先 `disconnect()` 再对三个窗格重新 `observe()`，重复调用幂等。顺带也修好了「模式切换后 `getScrollContainer()` 返回了新容器，但 observer 还守着旧容器」这一状态不一致。
+
+**副作用评估**：重建 observer 会丢失一次正在进行的 resize 防抖（`resizeDebounceTimer` 未被清），但 `checkMainModeChange` 紧接着就会 `forceSyncAll()`，位置会被重新对齐，无实际影响。
+
+### O-013 账簿文档漂移（P3）
+
+「架构速览」里的 doSync 描述仍写着「从左/右窗格反推主窗格时用 ±0.5 比例粗估（followMode.ts:484、489，已知粗糙点）」——这正是 2026-11-02 的 O-008 已经修掉的东西。账簿与实际代码冲突时以代码为准，本轮已把该段改为像素几何描述，mermaid 图里的「doSync 比例滚动同步」同步改为「doSync 像素几何滚动同步」。
+
+### 验证
+
+- `npm run verify`（typecheck → lint → stylelint → test → build）**全通过**。
+- `npm run lint` 0 error，1 个**既有**警告（`settings-tab/prefer-setting-definitions`，属 O-006 已决策不采纳项，基线未变）。
+- `npm test` 28/28（scroll-math 17 + i18n 11）。
+- `npm run build` 通过。
+
+**未做 / 残留风险**：Obsidian 实机验证未做（本环境无 Obsidian）。本轮两个修复都强依赖真实 DOM 行为，重点手测项：① 主窗格切编辑/阅读后，跟随窗格是否在同一时刻切换；② 切换后拖动栏宽，F-015 是否仍生效（验证 O-012 真的修好了）；③ 三栏模式下跨模式滚动的对齐精度。O-011 与 O-012 都改动了 `checkMainModeChange` 这一个入口，逻辑上互不冲突，但两者叠加后的实际表现仍需实机确认。
