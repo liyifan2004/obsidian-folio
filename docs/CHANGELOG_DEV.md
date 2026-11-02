@@ -41,3 +41,45 @@
 **方案与理由**：持久化字段 `language: 'auto' | 语言码`（缺省 auto，向后兼容）；命令名为注册时固化，无法动态改名，故在设置描述中注明「重载后更新」而非引入额外弹窗。原 `settingLanguage*` 文案键、`getLanguageName`/`getAvailableLanguages` 导出全部投入使用；`getCurrentLanguage`、`totalChars`/`currPos` 仍为残留（低价值，留待 i18n 清理）。
 
 **测试与结果**：`npm run lint` 0 error（同一既有警告）；`npm run build` 通过；grep 确认 `settingLanguageAuto` 9 处齐全。**未做**：实机验证（下拉交互与切换即时生效待手测）。
+
+## 2026-11-02 第三批：滚动几何修正 + 测试体系 + CI（O-008–O-010）
+
+**目标与完成内容**：把上一批留下的 O-008（侧栏滚动反推粗估）从「探索中」落地，同时补上仓库的两个结构性缺口——零自动化测试、零 CI。
+
+**关键文件**：
+- 新增 `src/scrollMath.ts`（108 行，纯函数）：`clampScroll`、`rightScrollFromMain`、`leftScrollFromMain`、`mainScrollFromRight`、`mainScrollFromLeft`、`pageScrollTarget`。不 import obsidian、不碰 DOM，因此可被单测直接验证。
+- `src/followMode.ts`：`doSync` 的主窗格目标位置不再用「±0.5 比例」粗估，改为调用 `mainScrollFromRight`/`mainScrollFromLeft` 按像素几何逆运算；跟随窗格目标位置改用 `rightScrollFromMain`/`leftScrollFromMain`，与正向严格互逆。`pageScroll` 改用 `pageScrollTarget`。
+- `src/types.ts`：新增 `getTranslationKeys(lang)` 导出，供测试校验 9 语言键集。
+- 新增 `test/mocks/obsidian.ts`（Obsidian API 最小桩）、`test/scroll-math.test.ts`（17 例）、`test/i18n.test.ts`（11 例）、`vitest.config.mts`。
+- 新增 `.github/workflows/ci.yml`；`release.yml` 补 test 步骤。
+
+**O-008 的问题证据**：旧实现在跟随窗格滚动时用 `mainRatio = rightRatio - 0.5`（左窗格为 `+0.5`）反推主窗格位置。这隐含假设「窗格高度 = 文档可滚动高度的 50%」——只对特定文档长度成立。误差随文档长度线性放大：
+
+| 文档可滚动高度 | 旧实现平均误差 | 旧实现峰值误差 | 新实现 |
+| --- | --- | --- | --- |
+| 1,500 px | 5.9 px | 6 px | 0 px |
+| 5,000 px | 1,378 px | 1,756 px | 0 px |
+| 20,000 px | 6,939 px | 9,256 px | 0 px |
+| 100,000 px | 36,503 px | 49,256 px | 0 px |
+
+（统计已排除文档两端「跟随窗格已滚到底/顶」的饱和样本——那种情况下主窗格位置在信息上本就不可知，属固有限制而非计算误差。）
+
+**方案与理由**：不引入任何依赖即可精确求解，因为正向公式本身就是纯线性映射（`rightScroll = mainScroll + clientHeight - overlap`），其逆映射是同一个表达式的逆运算。原实现之所以用比例而非像素，是把「文档位置」与「窗格像素高度」混在一个无量纲的 0.5 里——引入 `scrollMath.ts` 后，正反向公式相邻且成对，测试可以直接断言往返一致性，未来改公式必然同时改两处。
+
+**为什么不引入 `obsidian-test-mocks` 等现成桩库**：该类库能覆盖 Obsidian API 全貌，但本仓库当前的测试需求只涉及纯计算与 i18n，两处都不需要模拟 Obsidian 运行时；引入新依赖（供应链面 + 维护面）换来的只是几行桩代码。已沿用本机 fleet 内既有的自研桩模式（与 jev 的 `test/mocks/obsidian.ts` 同构），保持一致且零新增依赖。
+
+**依赖升级**（vitest 5 的 peer 要求，与 fleet 内 jev / adaptive-workspace 对齐）：`@types/node` ^16.11.6 → ^22.0.0；`esbuild` 0.17.3 → ^0.28.0。两者均为 devDependency，不影响发布产物。构建产物 `main.js` 大小 63,996 字节。
+
+**测试与结果**：
+- `npm run typecheck`（`tsc -noEmit -skipLibCheck`）通过。
+- `npm run lint` 0 error，1 个**既有**警告（`settings-tab/prefer-setting-definitions`），属 O-006 已决策不采纳项，基线未变。
+- `npm run lint:styles` 通过。
+- `npm test` → 2 个测试文件、**28 例全绿**。
+- `npm run build` 通过；产物中已确认不含旧的 ±0.5 逻辑。
+
+**未解决/风险**：
+- **Obsidian 实机验证未做**（本环境无 Obsidian）。本次修复的核心场景是「三栏模式下从左/右窗格滚动，主窗格精确对齐」，必须在真实 Obsidian 里手测确认。
+- i18n 死键（`featureTriple`/`featurePageUp`/`featurePageDown`/`totalChars`/`currPos`/`modeDual`/`modeTriple`，共 7 个 × 9 语言）仍未清理——低价值，且删除会改动 9 张翻译表，留待与下一次 i18n 整理一并处理；本次已在 `test/i18n.test.ts` 中锁定「各语言键集与英文基线完全一致」，故清理时可安全批量进行。
+- `getCurrentLanguage()` 导出仍未被使用，同上留待清理。
+
+**文档同步**：FEATURE_LEDGER 的架构速览、F-012 条目、O-008/009/010 条目、更新记录均已同步。

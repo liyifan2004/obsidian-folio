@@ -17,17 +17,19 @@
 | 待核实 | 证据不足，无法确认实际行为 |
 | 待实现 | 有需求或计划但尚无实现 |
 
-注意：「已实现」≠「已验证」。本仓库目前**没有任何自动化测试**，绝大多数条目的验证方式为源码核对或手动验证（见各条目）。
+注意：「已实现」≠「已验证」。本仓库的自动化测试覆盖**纯计算逻辑**（滚动几何）与**i18n 一致性**（9 语言键集对齐），涉及真实 Obsidian DOM / 窗格行为的条目仍只能靠源码核对或手动验证（见各条目）。
 
 ## 架构速览
 
 | 模块 | 职责 | 行数 |
 | --- | --- | --- |
-| `main.ts` | 插件入口：生命周期、7 个命令、Ribbon 菜单、设置页注册、设置持久化 | 194 |
-| `src/followMode.ts` | 核心引擎 `DualPaneFollowMode`：窗格管理、滚动同步、文件/模式/尺寸监听、清理 | 871 |
-| `src/types.ts` | i18n（9 语言翻译表 + 语言检测）、设置接口与默认值 | 668 |
-| `src/settings.ts` | 设置页（重叠行数滑块 + 静态说明） | 124 |
+| `main.ts` | 插件入口：生命周期、7 个命令、Ribbon 菜单、设置页注册、设置持久化 | 183 |
+| `src/followMode.ts` | 核心引擎 `DualPaneFollowMode`：窗格管理、滚动同步、文件/模式/尺寸监听、清理 | ~950 |
+| `src/scrollMath.ts` | 滚动几何纯函数：正向/反向换算、钳制、翻页目标（无 DOM 依赖，可单测） | 108 |
+| `src/types.ts` | i18n（9 语言翻译表 + 语言检测）、设置接口与默认值 | ~710 |
+| `src/settings.ts` | 设置页（重叠行数滑块 + 静态说明） | 151 |
 | `styles.css` | 设置页样式 + 跟随窗格标题后缀标记 | 54 |
+| `test/` | vitest 测试：滚动几何（17 例）+ i18n 一致性（11 例）+ Obsidian 桩模块 | — |
 
 启动调用关系：
 
@@ -177,11 +179,12 @@ flowchart TD
 - 用户价值：任一窗格滚动，其余窗格按「连续翻页」语义跟随。
 - 用户入口：自动（模式激活期间）。
 - 预期行为：见「架构速览」中的 doSync 说明。滚动事件 rAF 合帧；3px 阈值抑制抖动；同步中标志位防回环。
-- 实现位置：`followMode.ts`（attachScrollListener/doSync/estimateLineHeight）。
+- 实现位置：`followMode.ts`（attachScrollListener/doSync/estimateLineHeight）；几何计算在 `src/scrollMath.ts`。
 - 依赖与约束：依赖 DOM 滚动容器（`.cm-scroller` / `.markdown-preview-view`），非公开 API，Obsidian 界面改版可能失效。
-- 状态：已实现。
-- 已知问题：左/右窗格反推主窗格用 ±0.5 比例粗估，三栏模式下从侧栏滚动主窗格定位不精确（O-008，P3）；`estimateLineHeight` 每次同步都查询 DOM（rAF 频率，量小，暂判可接受）。
-- 关联：F-001、F-002、F-015、F-017。
+- 状态：已实现（2026-11-02 修正反向换算，见 O-008）。
+- 验证方式：`test/scroll-math.test.ts` 17 例全绿——正向/反向严格互逆，往返误差 0。
+- 已知问题：`estimateLineHeight` 每次同步都查询 DOM（rAF 频率，量小，暂判可接受）。文档末端/首端饱和时跟随窗格已滚到底/顶，主窗格位置在信息上不可知，属固有限制而非计算误差。
+- 关联：F-001、F-002、F-015、F-017、O-008。
 
 ### F-013 跨窗格文件一致（链接导航）
 
@@ -279,7 +282,9 @@ flowchart TD
 | O-005 | P2 | 翻页命令未激活时静默失效 | followMode.ts:603-605 | 未激活时回退作用于当前活动 Markdown 视图（独立翻页），无活动视图才提示 | ✅ 2026-10-23 完成 |
 | O-006 | P3 | 设置页未实现 `getSettingDefinitions()`，Obsidian 1.13+ 设置搜索不收录 | eslint warning（基线即存在） | 评估声明式 API 与 minAppVersion 1.8.7 的兼容后决定；纯增量改进 | ⛔ 已决策不采纳（API 需 1.13+，见 TECHNICAL_REFERENCES R-003）；lint 警告保留为已知 |
 | O-007 | P3 | 死代码/残留文案：语言选择文案键、未用导出、未用 i18n 键 | types.ts（键/导出比对调用点） | 与「语言手动选择」功能决策一并处理（实现或删除） | ✅ 2026-10-23 完成（实现语言手动选择 F-020，文案键与 getLanguageName/getAvailableLanguages 均已投入使用）；`getCurrentLanguage`/`totalChars`/`currPos` 残留留待 i18n 清理 |
-| O-008 | P3 | 三栏下侧栏反推主窗格 ±0.5 比例粗估，定位不精确 | followMode.ts:484、489 | 探索按像素锚点换算（主窗格可见区与侧栏可见区的绝对内容坐标映射）；参考 R-005「手动校准偏移」交互 | 🔍 探索中 |
+| O-008 | P3 | 三栏下侧栏反推主窗格 ±0.5 比例粗估，定位不精确 | followMode.ts:484、489 | 探索按像素锚点换算（主窗格可见区与侧栏可见区的绝对内容坐标映射）；参考 R-005「手动校准偏移」交互 | ✅ 2026-11-02 完成（改为像素几何逆运算，往返误差 0；新增 `src/scrollMath.ts` + 单元测试） |
+| O-009 | P2 | 仓库零自动化测试，所有行为只能靠源码核对与人工手测 | 本文件「状态词典」节原文自述；package.json 无 test 脚本 | 建立 vitest + Obsidian 桩模块测试体系，优先覆盖纯计算与 i18n 一致性这两类「不依赖 Obsidian 环境即可验证」的行为 | ✅ 2026-11-02 完成（28 个用例全绿） |
+| O-010 | P2 | 无 CI 工作流，lint/build 只在本地跑 | `.github/workflows/` 仅有 release.yml | 补 ci.yml，在 push/PR 上跑 typecheck → lint → stylelint → test → build | ✅ 2026-11-02 完成 |
 
 本轮未列入清单、仅记录的观察（证据不足以定为缺陷）：`waitForRender` 阈值经验值（关联 F-017）；`double-page` 50ms 间隔（F-006）；「主窗格被关后应否升补侧栏」的产品语义问题（F-016）；移动端实际表现（manifest `isDesktopOnly: false`，全部功能待实机核实）。
 
@@ -289,3 +294,8 @@ flowchart TD
 - 2026-10-23：建立账簿（基于 1.0.3 源码全文核对）；完成架构速览、F-001–F-019 明细、O-001–O-008 优化清单。全部条目验证状态为「源码核对 + lint/build 通过」，实机验证待做。
 - 2026-10-23（同日第一批优化）：完成 O-001–O-005（P1×2 + P2×3），O-006/007 决策落定，O-008 记录候选方案。受影响条目已更新：F-001/002/003/004-007/009/013/014/016/018/019 及架构速览。变更要点：`saveSettings` 不再重建引擎；窗格身份注册表 + 复用/回收；静默停止通道；事件驱动对账 + 500ms 兜底；翻页命令未激活回退；`getMode()` 公开 API。验证：lint 0 error（1 个既有警告）、`tsc -noEmit` + esbuild 通过、全文件逐行复核。实机验证未做（本环境无 Obsidian），剩余风险记录于各条目。开发记录见 `CHANGELOG_DEV.md`。
 - 2026-10-23（同日第二批）：完成 O-007——实现语言手动选择（新增 F-020），`settingLanguage*` 文案键与 `getLanguageName`/`getAvailableLanguages` 投入使用；新增 `settingLanguageAuto` 键 ×9，`settingLanguageDesc` ×9 注明命令名需重载更新。F-011 同步更新。验证：lint/build 通过、grep 确认 9 键齐全。实机验证待做。工作已提交（git 提交 `505678e` 修复批、`4f007c5` 文档批、后续 F-020 批）。
+- 2026-11-02（自动化轮）：完成 O-008（滚动反向换算）、O-009（建立测试体系）、O-010（补 CI）。
+  - O-008：新增 `src/scrollMath.ts`（纯函数，无 DOM/obsidian 依赖）；`doSync` 的主窗格位置反推由硬编码 ±0.5 比例改为按真实像素几何逆运算。原实现的误差随文档长度线性放大——20,000px 文档上峰值达 10,000px，100,000px 文档上达 49,256px；新实现往返误差为 0。`pageScroll` 同样改用 `pageScrollTarget` 纯函数。
+  - O-009：建立 vitest 测试体系（`vitest.config.mts` + `test/mocks/obsidian.ts` 桩模块 + `test/scroll-math.test.ts` + `test/i18n.test.ts`），共 28 例全绿。依赖升级：`@types/node` ^16→^22、`esbuild` 0.17.3→^0.28.0（vitest 5 的 peer 要求），与 jev/adaptive-workspace 对齐。
+  - O-010：新增 `.github/workflows/ci.yml`（push/PR 跑 typecheck → lint → stylelint → test → build），并给 release.yml 补上 test 步骤，使发布产物必须来自测试通过的树。
+  - 验证：`npm run typecheck` 通过；`npm run lint` 0 error（1 个既有警告 `settings-tab/prefer-setting-definitions`，属 O-006 已决策不采纳的项，基线未变）；`npm run lint:styles` 通过；`npm test` 28/28；`npm run build` 通过，产物中已无旧的 ±0.5 逻辑。**未做**：Obsidian 实机验证（本环境无 Obsidian）——重点手测项：三栏模式下从左/右窗格滚动时主窗格是否精确对齐（本次修复的核心场景）、双↔三切换不累积窗格、停止后重启复用窗格、拖动重叠滑块无副作用。
