@@ -458,8 +458,79 @@ export class DualPaneFollowMode {
 		const currentMode = this.getLeafMode(this.mainLeaf);
 		if (currentMode !== this.lastMainMode) {
 			this.lastMainMode = currentMode;
-			this.setupScrollSync();
-			window.setTimeout(() => this.forceSyncAll(), 300);
+			void this.applyModeChange(currentMode);
+		}
+	}
+
+	/**
+	 * Apply a mode change of the main pane to the whole workspace.
+	 *
+	 * Order matters here:
+	 *
+	 *   1. The follower panes switch mode FIRST. Their scroll container is
+	 *      replaced (`.cm-scroller` → `.markdown-preview-view`), so any
+	 *      listener attached before the switch would be bound to a detached
+	 *      element.
+	 *   2. Only THEN are the scroll listeners and the ResizeObserver rebuilt,
+	 *      so they observe the containers that actually exist afterwards.
+	 *
+	 * Skipping step 1 would leave the followers in a different mode than the
+	 * main pane — the "same document, different viewpoints" promise breaks —
+	 * and the pixel-geometry sync would compare two different coordinate
+	 * systems (different line heights, different line counts).
+	 */
+	private async applyModeChange(mode: 'source' | 'preview'): Promise<void> {
+		await this.syncFollowerModes(mode);
+
+		// Rebuild the scroll listeners: the scroll container changes identity
+		// on a mode switch, so the old listeners are bound to a detached node.
+		this.setupScrollSync();
+		// Same reason for the ResizeObserver: it observes a concrete element
+		// object, so a stale one silently stops firing — F-015 would die
+		// after the first mode switch.
+		this.setupResizeListener();
+
+		window.setTimeout(() => {
+			if (this.isActive) this.forceSyncAll();
+		}, 300);
+	}
+
+	/**
+	 * Switch the follower panes to `mode`, keeping the main pane as the
+	 * reference.
+	 *
+	 * Uses the documented `leaf.getViewState()` / `leaf.setViewState()` pair:
+	 * the markdown view's mode lives in the view state under `mode`
+	 * (`'source'` / `'preview'`), and `source: true` additionally means
+	 * "raw source" rather than Obsidian's live-preview editing mode. This is
+	 * the same route the community uses to drive the mode toggle
+	 * programmatically, so it works on every supported Obsidian version.
+	 */
+	private async syncFollowerModes(mode: 'source' | 'preview'): Promise<void> {
+		const followers: WorkspaceLeaf[] = [];
+		if (this.leftFollowLeaf) followers.push(this.leftFollowLeaf);
+		if (this.rightFollowLeaf) followers.push(this.rightFollowLeaf);
+
+		for (const leaf of followers) {
+			if (!this.isLeafValid(leaf)) continue;
+			try {
+				if (this.getLeafMode(leaf) === mode) continue;
+
+				const viewState = leaf.getViewState();
+				viewState.state = {
+					...viewState.state,
+					mode,
+					// `source: true` = raw source; `false` = live preview.
+					source: mode === 'source',
+				};
+				await leaf.setViewState(viewState);
+				// The new scroll container only exists after the view has
+				// re-rendered. Waiting here means the listener rebuild that
+				// follows binds to the live element, not to a placeholder.
+				await this.waitForRender(leaf, 500);
+			} catch (error) {
+				console.error('切换跟随窗格模式失败:', error);
+			}
 		}
 	}
 
