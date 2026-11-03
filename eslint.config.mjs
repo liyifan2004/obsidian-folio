@@ -7,7 +7,7 @@ export default defineConfig([
 		languageOptions: {
 			parserOptions: {
 				projectService: {
-					allowDefaultProject: ["eslint.config.mjs", "esbuild.config.mjs", "version-bump.mjs"],
+					allowDefaultProject: ["eslint.config.mjs", "esbuild.config.mjs", "version-bump.mjs", "version-sync.mjs"],
 				},
 			},
 		},
