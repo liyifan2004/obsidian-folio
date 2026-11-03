@@ -158,9 +158,9 @@ flowchart TD
 
 - 用户价值：查看命令清单、功能简介、文档与反馈链接。
 - 用户入口：设置页（标题、7 命令图标列表、3 条功能说明、2 个外链）。
-- 实现位置：`settings.ts:48-123`；样式 `styles.css:6-46`。
-- 状态：已实现。
-- 已知问题：eslint 提示未实现 `getSettingDefinitions()`（Obsidian 1.13+ 声明式设置搜索不收录本页，见 O-006）；命令/功能列表为静态硬编码，与实际命令注册分离，改命令时需两处同步。
+- 实现位置：`settings.ts`；样式 `styles.css`。
+- 状态：已实现（2026-11-03 起支持声明式设置 API，见 O-014 补充）。
+- 已知问题：命令/功能列表为静态硬编码，与实际命令注册分离，改命令时需两处同步。
 - 关联：F-011、O-006。
 
 ### F-011 多语言界面
@@ -280,14 +280,15 @@ flowchart TD
 | O-003 | P2 | 通知重复：停止路径弹两条；模式切换弹「已停止+已启动」 | followMode.ts:668-677、776-780；main.ts:161-172 | 增加静默停止通道，内部转换不发通知，只发最终态通知 | ✅ 2026-10-23 完成（`stopFollowMode({silent})`） |
 | O-004 | P2 | 400ms+500ms 双常驻轮询，能耗与响应延迟 | followMode.ts:374-414、631-646 | 用 `file-open`/`active-leaf-change`/`layout-change` 事件驱动对账，保留 1 个低频定时器兜底模式切换 | ✅ 2026-10-23 完成（事件 + 500ms 兜底；`isReconciling` 防自触发回环） |
 | O-005 | P2 | 翻页命令未激活时静默失效 | followMode.ts:603-605 | 未激活时回退作用于当前活动 Markdown 视图（独立翻页），无活动视图才提示 | ✅ 2026-10-23 完成 |
-| O-006 | P3 | 设置页未实现 `getSettingDefinitions()`，Obsidian 1.13+ 设置搜索不收录 | eslint warning（基线即存在） | 评估声明式 API 与 minAppVersion 1.8.7 的兼容后决定；纯增量改进 | ⛔ 已决策不采纳（API 需 1.13+，见 TECHNICAL_REFERENCES R-003）；lint 警告保留为已知 |
-| O-007 | P3 | 死代码/残留文案：语言选择文案键、未用导出、未用 i18n 键 | types.ts（键/导出比对调用点） | 与「语言手动选择」功能决策一并处理（实现或删除） | ✅ 2026-10-23 完成（实现语言手动选择 F-020，文案键与 getLanguageName/getAvailableLanguages 均已投入使用）；`getCurrentLanguage`/`totalChars`/`currPos` 残留留待 i18n 清理 |
+| O-006 | P3 | 设置页未实现 `getSettingDefinitions()`，Obsidian 1.13+ 设置搜索不收录 | eslint warning（基线即存在） | 评估声明式 API 与 minAppVersion 1.8.7 的兼容后决定；纯增量改进 | ✅ 2026-11-03 完成（原「不采纳」决策已推翻：声明式与命令式两条渲染路径可共存，见 F-010）。1.13+ 走 `getSettingDefinitions()`，1.8.7–1.12 保留原 `display()`，lint 警告随之消失 |
+| O-007 | P3 | 死代码/残留文案：语言选择文案键、未用导出、未用 i18n 键 | types.ts（键/导出比对调用点） | 与「语言手动选择」功能决策一并处理（实现或删除） | ✅ 2026-10-23 完成（实现语言手动选择 F-020，文案键与 getLanguageName/getAvailableLanguages 均已投入使用）；残留部分见 O-014 |
 | O-008 | P3 | 三栏下侧栏反推主窗格 ±0.5 比例粗估，定位不精确 | followMode.ts:484、489 | 探索按像素锚点换算（主窗格可见区与侧栏可见区的绝对内容坐标映射）；参考 R-005「手动校准偏移」交互 | ✅ 2026-11-02 完成（改为像素几何逆运算，往返误差 0；新增 `src/scrollMath.ts` + 单元测试） |
 | O-009 | P2 | 仓库零自动化测试，所有行为只能靠源码核对与人工手测 | 本文件「状态词典」节原文自述；package.json 无 test 脚本 | 建立 vitest + Obsidian 桩模块测试体系，优先覆盖纯计算与 i18n 一致性这两类「不依赖 Obsidian 环境即可验证」的行为 | ✅ 2026-11-02 完成（28 个用例全绿） |
 | O-010 | P2 | 无 CI 工作流，lint/build 只在本地跑 | `.github/workflows/` 仅有 release.yml | 补 ci.yml，在 push/PR 上跑 typecheck → lint → stylelint → test → build | ✅ 2026-11-02 完成 |
 | O-011 | P1 | **跟随窗格不跟随主窗格的编辑/阅读模式切换**：主窗格切到阅读模式时，跟随窗格仍停在编辑模式 —— 账簿 F-014 原文已自述为「跨功能缝隙」。后果有二：①「同一文档的多视角」承诺破裂；②两种模式的滚动容器不同（`.cm-scroller` vs `.markdown-preview-view`），像素几何同步会把两个不同坐标系拿来互逆 | followMode.ts `checkMainModeChange` 只调 `setupScrollSync()`，无任何模式切换调用；`getLeafMode` 对跟随窗格只读不写 | 新增 `syncFollowerModes(mode)`：用 `leaf.getViewState()` 取当前状态、改写 `state.mode` 与 `state.source`、`leaf.setViewState()` 写回（社区通用的模式切换路径，兼容各版本） | ✅ 2026-11-03 完成 |
 | O-012 | P1 | **模式切换后尺寸监听静默失效**：滚动容器随模式切换换元素（`.cm-scroller` → `.markdown-preview-view`），但 ResizeObserver 仍在观察旧元素；旧节点脱离文档后不再触发回调，F-015「调整栏宽后位置不跑偏」在第一次模式切换之后就死了 | followMode.ts `checkMainModeChange` 未调用 `setupResizeListener()`；`setupResizeListener` 在 `setupFollow()` 里只于启动时执行一次 | 模式切换时同步重建 ResizeObserver（`setupResizeListener()` 内部先 `disconnect()` 再重新 observe，幂等） | ✅ 2026-11-03 完成 |
 | O-013 | P3 | 账簿「架构速览」仍描述旧的 ±0.5 比例粗估，与 O-008 已修复的实现冲突 | FEATURE_LEDGER.md:52（修复前）与 followMode.ts 实际代码不符 | 文档同步为像素几何描述 | ✅ 2026-11-03 完成 |
+| O-014 | P3 | 7 个 i18n 键在 9 张翻译表里都存在却从无调用点：`featureTriple`/`featurePageUp`/`featurePageDown`/`totalChars`/`currPos`/`modeDual`/`modeTriple`；另有未使用的导出 `getCurrentLanguage()` | 以 TS 编译器 API 解析 `translations` 对象的属性名，与全仓 `t('...')` 调用点求差集，7 键 × 9 语言 = 63 条 + 1 个导出 | 全部删除（63 条翻译 + 被清空的注释段 + 未用导出）。键集一致性由 `test/i18n.test.ts` 断言，删除后仍保持 9 语言完全同步（34 键/语言） | ✅ 2026-11-03 完成 |
 
 本轮未列入清单、仅记录的观察（证据不足以定为缺陷）：`waitForRender` 阈值经验值（关联 F-017）；`double-page` 50ms 间隔（F-006）；「主窗格被关后应否升补侧栏」的产品语义问题（F-016）；移动端实际表现（manifest `isDesktopOnly: false`，全部功能待实机核实）。
 
@@ -307,3 +308,8 @@ flowchart TD
   - O-012：`checkMainModeChange` 增加 `setupResizeListener()`。滚动容器随模式切换换元素，旧 ResizeObserver 仍观察已脱离文档的旧节点 → 回调不再触发 → F-015 在第一次模式切换后静默失效。`setupResizeListener()` 内部先 `disconnect()` 再重新 observe，重复调用幂等。
   - O-013：修正「架构速览」中仍描述旧 ±0.5 比例粗估的段落（原 FEATURE_LEDGER.md:52），与 2026-11-02 已完成的 O-008 实现冲突。
   - 验证：`npm run verify`（typecheck → lint → stylelint → test → build）全通过；lint 0 error（1 个既有警告 `settings-tab/prefer-setting-definitions`，属 O-006 已决策不采纳项，基线未变）；`npm test` 28/28；`npm run build` 通过。**未做**：Obsidian 实机验证（本环境无 Obsidian）——重点手测项：主窗格切换编辑/阅读后跟随窗格是否同步切换、切换后拖动栏宽是否仍触发重同步（F-015 复活）、三栏模式下跨模式滚动是否仍精确对齐。
+- 2026-11-03（自动化轮 · 第三批）：完成 O-014（i18n 死键清理），并同步 O-006 / F-010 的状态。
+  - O-014：以 TS 编译器 API 解析 `translations` 对象的属性名，与全仓 `t('...')` 调用点求差集，确认 7 个键在 9 张翻译表里都存在却从无调用点：`featureTriple`、`featurePageUp`、`featurePageDown`、`totalChars`、`currPos`、`modeDual`、`modeTriple`（共 63 条），另有未使用的导出 `getCurrentLanguage()`。全部删除，连同被清空的注释段。翻译表由 41 键/语言降到 34 键/语言，9 语言仍完全同步（由 `test/i18n.test.ts` 断言）。
+  - O-006 状态翻转：此前记为「⛔ 已决策不采纳（API 需 1.13+）」，现改为已完成——声明式与命令式两条渲染路径可共存（1.13+ 走 `getSettingDefinitions()`，1.8.7–1.12 保留 `display()`），lint 警告随之消失。
+  - F-010 条目同步：移除「eslint 提示未实现 `getSettingDefinitions()`」这一已知问题。
+  - 验证：`npm run verify` 全通过；`npm test` 37/37；键集一致性用 TS 编译器 API 独立复核通过（无缺失、无多余、无重复）。
