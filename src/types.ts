@@ -84,25 +84,15 @@ const translations: Record<Language, Record<string, string>> = {
 		// 功能说明
 		'featureSync': 'Sync Scroll',
 		'featureSyncDesc': 'Scroll left pane, right pane follows automatically',
-		'featureTriple': 'Triple Pane',
 		'featureTripleDesc': 'Left (prev) + Center (main) + Right (next)',
-		'featurePageUp': 'Page Up',
 		'featurePageUpDesc': 'Scroll both panes up by one page',
-		'featurePageDown': 'Page Down',
 		'featurePageDownDesc': 'Scroll both panes down by one page',
-		
-		// 统计
-		'totalChars': 'Total Characters',
-		'currPos': 'Current Position',
 		
 		// 其他
 		'support': 'Support',
 		'feedback': 'Feedback',
 		'docs': 'Documentation',
 		
-		// 模式标签
-		'modeDual': 'Dual Pane',
-		'modeTriple': 'Triple Pane',
 		'modeActive': 'Active',
 	},
 	
@@ -146,25 +136,15 @@ const translations: Record<Language, Record<string, string>> = {
 		// 功能说明
 		'featureSync': '同步滚动',
 		'featureSyncDesc': '主窗格滚动，跟随窗格自动跟随',
-		'featureTriple': '三栏模式',
 		'featureTripleDesc': '左窗格（前一屏）+ 中窗格（主窗口）+ 右窗格（后一屏）',
-		'featurePageUp': '双栏上翻页',
 		'featurePageUpDesc': '同时向上滚动一页',
-		'featurePageDown': '双栏下翻页',
 		'featurePageDownDesc': '同时向下滚动一页',
-		
-		// 统计
-		'totalChars': '总字符数',
-		'currPos': '当前位置',
 		
 		// 其他
 		'support': '支持',
 		'feedback': '反馈问题',
 		'docs': '文档',
 		
-		// 模式标签
-		'modeDual': '双栏模式',
-		'modeTriple': '三栏模式',
 		'modeActive': '已启用',
 	},
 	
@@ -208,16 +188,9 @@ const translations: Record<Language, Record<string, string>> = {
 		// 功能說明
 		'featureSync': '同步捲動',
 		'featureSyncDesc': '主窗格捲動，跟隨窗格自動跟隨',
-		'featureTriple': '三欄模式',
 		'featureTripleDesc': '左窗格（前一屏）+ 中窗格（主視窗）+ 右窗格（後一屏）',
-		'featurePageUp': '雙欄上翻頁',
 		'featurePageUpDesc': '同時向上捲動一頁',
-		'featurePageDown': '雙欄下翻頁',
 		'featurePageDownDesc': '同時向下捲動一頁',
-		
-		// 統計
-		'totalChars': '總字元數',
-		'currPos': '目前位置',
 		
 		// 其他
 		'support': '支援',
@@ -225,8 +198,6 @@ const translations: Record<Language, Record<string, string>> = {
 		'docs': '文件',
 		
 		// 模式標籤
-		'modeDual': '雙欄模式',
-		'modeTriple': '三欄模式',
 		'modeActive': '已啟用',
 	},
 	
@@ -270,16 +241,9 @@ const translations: Record<Language, Record<string, string>> = {
 		// 機能説明
 		'featureSync': '同期スクロール',
 		'featureSyncDesc': '左ペインをスクロールすると右ペインも自動的にスクロール',
-		'featureTriple': '3ペインモード',
 		'featureTripleDesc': '左（前）+ 中央（メイン）+ 右（次）',
-		'featurePageUp': '1ページ上へ',
 		'featurePageUpDesc': '両方のペインを同時に1ページ上へスクロール',
-		'featurePageDown': '1ページ下へ',
 		'featurePageDownDesc': '両方のペインを同時に1ページ下へスクロール',
-		
-		// 統計
-		'totalChars': '総文字数',
-		'currPos': '現在位置',
 		
 		// その他
 		'support': 'サポート',
@@ -287,8 +251,6 @@ const translations: Record<Language, Record<string, string>> = {
 		'docs': 'ドキュメント',
 		
 		// モードラベル
-		'modeDual': '2ペイン',
-		'modeTriple': '3ペイン',
 		'modeActive': '有効',
 	},
 	
@@ -332,16 +294,9 @@ const translations: Record<Language, Record<string, string>> = {
 		// 기능 설명
 		'featureSync': '동기화 스크롤',
 		'featureSyncDesc': '왼쪽 창을 스크롤하면 오른쪽 창이 자동으로 따라감',
-		'featureTriple': '3창 모드',
 		'featureTripleDesc': '왼쪽 (이전) + 중앙 (메인) + 오른쪽 (다음)',
-		'featurePageUp': '페이지 위로',
 		'featurePageUpDesc': '양쪽 창을 동시에 한 페이지 위로 스크롤',
-		'featurePageDown': '페이지 아래로',
 		'featurePageDownDesc': '양쪽 창을 동시에 한 페이지 아래로 스크롤',
-		
-		// 통계
-		'totalChars': '총 글자 수',
-		'currPos': '현재 위치',
 		
 		// 기타
 		'support': '지원',
@@ -349,8 +304,6 @@ const translations: Record<Language, Record<string, string>> = {
 		'docs': '문서',
 		
 		// 모드 라벨
-		'modeDual': '2창',
-		'modeTriple': '3창',
 		'modeActive': '활성화됨',
 	},
 	
@@ -394,16 +347,9 @@ const translations: Record<Language, Record<string, string>> = {
 		// Description des fonctionnalités
 		'featureSync': 'Défilement synchronisé',
 		'featureSyncDesc': 'Le volet droit suit automatiquement le volet gauche',
-		'featureTriple': 'Mode 3 volets',
 		'featureTripleDesc': 'Gauche (précédent) + Centre (principal) + Droite (suivant)',
-		'featurePageUp': 'Page précédente',
 		'featurePageUpDesc': 'Défiler les deux volets vers le haut',
-		'featurePageDown': 'Page suivante',
 		'featurePageDownDesc': 'Défiler les deux volets vers le bas',
-		
-		// Statistiques
-		'totalChars': 'Total caractères',
-		'currPos': 'Position actuelle',
 		
 		// Autre
 		'support': 'Support',
@@ -411,8 +357,6 @@ const translations: Record<Language, Record<string, string>> = {
 		'docs': 'Documentation',
 		
 		// Étiquettes de mode
-		'modeDual': '2 volets',
-		'modeTriple': '3 volets',
 		'modeActive': 'Actif',
 	},
 	
@@ -456,16 +400,9 @@ const translations: Record<Language, Record<string, string>> = {
 		// Funktionsbeschreibung
 		'featureSync': 'Synchronisiertes Scrollen',
 		'featureSyncDesc': 'Rechtes Fenster folgt automatisch dem linken',
-		'featureTriple': '3-Fenster-Modus',
 		'featureTripleDesc': 'Links (vorherig) + Mitte (Haupt) + Rechts (nächster)',
-		'featurePageUp': 'Seite nach oben',
 		'featurePageUpDesc': 'Beide Fenster gleichzeitig nach oben scrollen',
-		'featurePageDown': 'Seite nach unten',
 		'featurePageDownDesc': 'Beide Fenster gleichzeitig nach unten scrollen',
-		
-		// Statistik
-		'totalChars': 'Gesamtzeichen',
-		'currPos': 'Aktuelle Position',
 		
 		// Sonstiges
 		'support': 'Support',
@@ -473,8 +410,6 @@ const translations: Record<Language, Record<string, string>> = {
 		'docs': 'Dokumentation',
 		
 		// Modus-Labels
-		'modeDual': '2 Fenster',
-		'modeTriple': '3 Fenster',
 		'modeActive': 'Aktiv',
 	},
 	
@@ -518,16 +453,9 @@ const translations: Record<Language, Record<string, string>> = {
 		// Descripción de características
 		'featureSync': 'Desplazamiento sincronizado',
 		'featureSyncDesc': 'El panel derecho sigue automáticamente al izquierdo',
-		'featureTriple': 'Modo 3 paneles',
 		'featureTripleDesc': 'Izquierda (anterior) + Centro (principal) + Derecha (siguiente)',
-		'featurePageUp': 'Página anterior',
 		'featurePageUpDesc': 'Desplazar ambos paneles hacia arriba',
-		'featurePageDown': 'Página siguiente',
 		'featurePageDownDesc': 'Desplazar ambos paneles hacia abajo',
-		
-		// Estadísticas
-		'totalChars': 'Total de caracteres',
-		'currPos': 'Posición actual',
 		
 		// Otros
 		'support': 'Soporte',
@@ -535,8 +463,6 @@ const translations: Record<Language, Record<string, string>> = {
 		'docs': 'Documentación',
 		
 		// Etiquetas de modo
-		'modeDual': '2 paneles',
-		'modeTriple': '3 paneles',
 		'modeActive': 'Activo',
 	},
 	
@@ -580,16 +506,9 @@ const translations: Record<Language, Record<string, string>> = {
 		// وصف الميزات
 		'featureSync': 'التمرير المتزامن',
 		'featureSyncDesc': 'النافذة اليمنى تتبع اليسرى تلقائيًا',
-		'featureTriple': 'وضع ثلاث نوافذ',
 		'featureTripleDesc': 'اليسار (السابق) + الوسط (الرئيسي) + اليمين (التالي)',
-		'featurePageUp': 'صفحة للأعلى',
 		'featurePageUpDesc': 'تمرير النافذتين للأعلى معًا',
-		'featurePageDown': 'صفحة للأسفل',
 		'featurePageDownDesc': 'تمرير النافذتين للأسفل معًا',
-		
-		// الإحصائيات
-		'totalChars': 'إجمالي الأحرف',
-		'currPos': 'الموضع الحالي',
 		
 		// أخرى
 		'support': 'الدعم',
@@ -597,8 +516,6 @@ const translations: Record<Language, Record<string, string>> = {
 		'docs': 'التوثيق',
 		
 		// تسميات الوضع
-		'modeDual': 'نافذتين',
-		'modeTriple': 'ثلاث نوافذ',
 		'modeActive': 'مفعل',
 	}
 };
@@ -611,13 +528,6 @@ let currentLanguage: Language = 'en';
  */
 export function setLanguage(lang: Language): void {
 	currentLanguage = lang;
-}
-
-/**
- * 获取当前语言
- */
-export function getCurrentLanguage(): Language {
-	return currentLanguage;
 }
 
 /**
