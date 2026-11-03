@@ -154,7 +154,12 @@ describe("computeVersionSync", () => {
 
 	it("returns null when the target version is missing", () => {
 		expect(
-			computeVersionSync({ manifest, packageJson: {}, versions: {} }),
+			computeVersionSync({
+				manifest,
+				packageJson: {},
+				versions: {},
+				targetVersion: null,
+			}),
 		).toBeNull();
 	});
 
