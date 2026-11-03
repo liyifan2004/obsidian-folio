@@ -57,6 +57,27 @@ export function getLanguage(): string {
 	return mockLanguage;
 }
 
+/**
+ * Runtime feature probe (Obsidian 1.13+). The stub reports the version the
+ * test asks for; `__setApiVersion()` flips it so tests can exercise both
+ * the declarative and the imperative rendering path.
+ */
+let mockApiVersion = "1.13.0";
+
+export function __setApiVersion(version: string): void {
+	mockApiVersion = version;
+}
+
+export function requireApiVersion(version: string): boolean {
+	const parse = (v: string): number[] =>
+		v.split(".").map((n) => parseInt(n, 10) || 0);
+	const [a, b, c] = parse(mockApiVersion);
+	const [x, y, z] = parse(version);
+	if (a !== x) return a > x;
+	if (b !== y) return b > y;
+	return c >= z;
+}
+
 // ---------------------------------------------------------------- 类型桩
 
 export class App {
@@ -111,9 +132,95 @@ export class PluginSettingTab {
 	display(): void {
 		/* noop */
 	}
+
+	/**
+	 * Declarative settings API (Obsidian 1.13+). The real implementation
+	 * re-renders from the definitions; the stub records the call so tests can
+	 * assert that the refresh path picks the right one.
+	 */
+	update(): void {
+		/* noop */
+	}
+}
+
+/**
+ * Minimal DOM stand-in for the settings pane.
+ *
+ * The imperative renderer calls `containerEl.empty()` and then Obsidian's
+ * `createDiv` / `createEl` / `createSpan` helpers. The stub only needs to
+ * satisfy those calls so the render path can be exercised without a browser.
+ */
+export function createContainerEl(): HTMLElement {
+	const make = (tag: string): HTMLElement => {
+		const el = {
+			tagName: tag,
+			children: [] as HTMLElement[],
+			classes: new Set<string>(),
+			textContent: "",
+			style: {},
+			appendChild(child: HTMLElement) {
+				el.children.push(child);
+				return child;
+			},
+			addClass(...cls: string[]) {
+				for (const c of cls) el.classes.add(c);
+			},
+			removeClass(...cls: string[]) {
+				for (const c of cls) el.classes.delete(c);
+			},
+			toggleClass(cls: string, on: boolean) {
+				if (on) el.classes.add(cls);
+				else el.classes.delete(cls);
+			},
+			hasClass(cls: string) {
+				return el.classes.has(cls);
+			},
+			setText(text: string) {
+				el.textContent = text;
+			},
+			empty() {
+				el.children.length = 0;
+			},
+			setCssProps(_props: Record<string, string>) {
+				/* noop */
+			},
+			setAttribute(_name: string, _value: string) {
+				/* noop */
+			},
+			removeAttribute(_name: string) {
+				/* noop */
+			},
+			createDiv(options?: { cls?: string; text?: string }): HTMLElement {
+				const child = make("div");
+				if (options?.cls) child.addClass(options.cls);
+				if (options?.text) child.setText(options.text);
+				el.appendChild(child);
+				return child;
+			},
+			createSpan(options?: { cls?: string; text?: string }): HTMLElement {
+				const child = make("span");
+				if (options?.cls) child.addClass(options.cls);
+				if (options?.text) child.setText(options.text);
+				el.appendChild(child);
+				return child;
+			},
+			createEl(tag: string, options?: { cls?: string; text?: string }): HTMLElement {
+				const child = make(tag);
+				if (options?.cls) child.addClass(options.cls);
+				if (options?.text) child.setText(options.text);
+				el.appendChild(child);
+				return child;
+			},
+		};
+		return el as unknown as HTMLElement;
+	};
+	return make("div");
 }
 
 export class Setting {
+	/** The control column — where custom render blocks put their content. */
+	controlEl: HTMLElement = createContainerEl();
+
 	constructor(_el: unknown) {}
 
 	setName(): this {
@@ -129,6 +236,11 @@ export class Setting {
 	}
 
 	setTooltip(): this {
+		return this;
+	}
+
+	/** Used by the custom sections to span the full row width. */
+	setClass(_cls: string): this {
 		return this;
 	}
 
