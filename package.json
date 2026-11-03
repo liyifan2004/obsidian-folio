@@ -1,6 +1,6 @@
 {
   "name": "multifolio",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "MultiFolio - A continuous multi-column workspace for seamless reading and editing",
   "main": "main.js",
   "scripts": {
@@ -29,7 +29,7 @@
     "esbuild": "^0.28.0",
     "eslint": "^9.39.5",
     "eslint-plugin-obsidianmd": "^0.4.2",
-    "obsidian": "latest",
+    "obsidian": "^1.13.1",
     "stylelint": "^17.16.0",
     "stylelint-config-obsidianmd": "^0.1.0",
     "tslib": "2.4.0",
