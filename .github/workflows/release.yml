@@ -7,7 +7,7 @@ name: Release
 on:
   push:
     tags:
-      - "*.*.*"
+      - "[0-9]+.[0-9]+.[0-9]+"
 
 permissions:
   contents: write
@@ -40,6 +40,17 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      # tag 与 manifest 版本号必须一致，否则商店里的版本号会和实际代码
+      # 对不上（用户升级不到真正的修复版本）。这是本仓库唯一防止
+      # 「打错 tag 就发版」的闸门。
+      - name: Verify tag matches manifest version
+        run: |
+          manifest_version="$(node -p "require('./manifest.json').version")"
+          if [ "$manifest_version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match manifest version $manifest_version"
+            exit 1
+          fi
 
       - name: Attest build provenance
         uses: actions/attest-build-provenance@v4
