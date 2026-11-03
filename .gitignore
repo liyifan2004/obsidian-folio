@@ -24,3 +24,7 @@ yarn-error.log*
 .workbuddy/
 .claude/
 .agents/
+
+# macOS design sources (not needed at runtime; recoverable from git history)
+*@2x.png
+*_2K_*.jpeg
