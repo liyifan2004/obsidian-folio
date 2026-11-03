@@ -5,6 +5,20 @@
 
 /* ==================== 设置页 ==================== */
 
+/* 自定义区块（命令列表 / 功能说明 / 支持链接）
+ * 这些区块的内容比默认控件宽，需要独占整行：
+ * Obsidian 的 .setting-item 是两列网格（信息 | 控件），
+ * 这里让控件列占满整行，与旧的手写 display() 布局一致。
+ */
+.multifolio-section {
+	display: block;
+}
+
+.multifolio-section .setting-item-control {
+	justify-content: flex-start;
+	width: 100%;
+}
+
 /* 命令列表 */
 .multifolio-command {
 	display: flex;
