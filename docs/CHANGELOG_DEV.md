@@ -156,3 +156,40 @@
 这类"批量改翻译表"的操作，优先用行级匹配而不是 AST 区间裁剪。
 
 **验证**：`npm run verify` 全通过；`npm test` 37/37；键集一致性另用 TS 编译器 API 独立复核（无缺失、无多余、无重复）。
+
+---
+
+## 2026-11-05 · lint 覆盖范围补全到整个仓库
+
+**背景**：在 obsidian-jev-inbox-router 上发现一类问题 —— **eslint 配置写了、规则装了，但没人跑**（配置存在却从未接进 `verify` / CI）。
+本轮复查全 fleet 的 lint 接入情况时，发现 folio 有**同型的另一面**：
+`lint` 脚本是 `eslint main.ts src package.json`，**只点名 3 处**，
+于是 `test/` 下的 5 个测试文件完全游离在 lint 之外。
+
+**完成内容**：
+
+1. **lint 范围从 3 处扩到整个仓库**：`eslint main.ts src package.json` → `eslint .`。
+   实测覆盖文件数 **6 → 12**，新增 `test/` 下 5 个文件与 `version-sync.d.mts`。
+2. **补 `globalIgnores`**：`main.js`（esbuild 产物，仓库根目录同时有 `main.ts`）、
+   `*.config.mjs` / `*.config.mts`（构建期配置）、`version-*.mjs`（构建期脚本）、
+   `tools/`（Python 脚本）。这些不是插件源码，拿插件规则审只会得到假告警，
+   而且它们不进发布产物（商店只下载 `main.js` / `manifest.json` / `styles.css`）。
+   顺带解决了 `vitest.config.mts` 的解析错误（不在 tsconfig 的 project service 里）。
+3. **补 test/ 的规则豁免块**：与 jev / MSE 同构。
+   `no-unsupported-api` 需要额外放开 —— 它只比对「API 的 `@since` 版本 vs manifest 的
+   `minAppVersion`」，**不理解 `requireApiVersion("1.13.0")` 这样的运行时守卫**。
+   folio 的 minAppVersion 是 1.8.7，而 `SettingTab.update` 是 1.13.0 才有的：
+   源码里 `this.update()` 有守卫（`src/settings.ts` 的 `refresh()`）是安全的，
+   而测试要**直接替换** `update()` 来断言「1.13+ 走 update()、旧版不走」——
+   两种情况都不进发布产物。
+
+**扩展覆盖立刻抓到了东西**：改成 `eslint .` 后第一次运行报了 2 个 error
+（`no-unsupported-api` × 2）与 1 个 warning（`display` 的 deprecated），
+都在 `test/settings-definitions.test.ts` 里 —— 正是此前完全没被检过的那部分代码。
+
+**验证**：`npm run verify` 全绿（typecheck + lint 0 问题 + stylelint + vitest 53/53 + build）。
+
+**未解决/风险**：
+- folio 的 lint 仍未在真实 Obsidian 中实机验证（本环境无 GUI）。
+- `no-unsupported-api` 不理解运行时守卫，所以**源码**里的版本相关调用仍需人工核对
+  （本轮确认过 folio 源码里的 `update()` 有 `requireApiVersion` 守卫）。
