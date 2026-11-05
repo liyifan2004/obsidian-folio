@@ -293,3 +293,27 @@ test → build）；测试 **53 → 55**。
 - **`obsidian-mineru` 尚未补这套守卫** —— 它的测试基建是自建的
   `node test/run.mjs` + `verify-*.ts`，没有 vitest 也没有 obsidian mock，
   要测 `settings.ts` 需先建 mock 基建，属结构性改动，本轮不做。
+
+## 2026-11-06 actions/setup-python 升到 v7 —— 消除 Node 20 弃用警告
+
+**改动**：`.github/workflows/ci.yml` 的 `actions/setup-python@v5` → `@v7`（1 行）。
+
+**依据**：setup-python v5 的 runtime 是 node20，GitHub 已正式弃用 ——
+**本仓库 CI #16 的 annotation 里就实测到了这条警告**：
+「Node.js 20 is deprecated. The following actions target Node.js 20 but are being
+forced to run on Node.js 24: actions/setup-python@v5」。
+
+官方 release notes 的两处破坏性变更，本仓库都不受影响：
+
+| 版本 | 破坏性变更 | 本仓库 |
+| --- | --- | --- |
+| v6.0.0 | node20 → node24（要求 runner ≥ v2.327.1） | GitHub 托管 runner 已满足 |
+| v7.0.0 | 移除 `pip-install` 输入；迁移到 ESM（输入/输出/行为不变） | 全量检索确认 0 处使用 `pip-install` |
+
+本仓库的 `setup-python` 只用于 `python tools/convert-demos.py --check`
+（WebP 演示素材校验，纯标准库），不装任何 Python 包。
+
+**顺带**：setup-python 是 fleet 里唯一落后的大版本（checkout / setup-node 早已 v7），
+本次一并对齐到 v7。
+
+**验证**：6 个 workflow 文件用 js-yaml 校验语法全部通过；`npm run verify` 全通过（55/55）。
