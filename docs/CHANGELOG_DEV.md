@@ -245,3 +245,51 @@ README 就是用户搜索到插件后看到的**第一份说明** —— 它太�
 - **未在真实 Obsidian 商店页面确认渲染效果**（本环境无 GUI，商店页面是客户端渲染，
   WebFetch 拿不到内容）。图标已移除，理论上不会再有「巨大图标」问题。
 - 商店页面 README 的折叠阈值具体数值未测（调研只测到了字符数，未换算成行数）。
+
+## 2026-11-06 补上声明式 render 契约守卫
+
+**目标与完成内容**：新增 `test/settings-render-guard.test.ts`，
+锁住 Obsidian 1.13+ 声明式渲染器的两条契约。
+
+**背景**：fleet 里 `obsidian-adaptive-workspace` 与 `obsidian-jev-inbox-router`
+已有这两条守卫，本仓库与 MSE、mineru 没有 —— 覆盖不一致。
+本轮先补 folio 与 MSE（两者用 vitest，基建现成）。
+
+**两条契约**：
+
+- **`render()` 的返回值会被当作「行销毁前的清理函数」调用。**
+  官方 d.ts（obsidian 1.14.4）：
+  `render: (setting: Setting, group: SettingGroup) => void | (() => void)`。
+  写成表达式体并返回非函数值 → Obsidian 当函数调用 →
+  `TypeError: t is not a function` → **设置子页面永远打不开**。
+  （社区插件 `PKM-er/obsidian-editing-toolbar` 4.1.6 的真实事故。）
+- **自定义块必须画进还活着的容器。**
+  `Setting` 结构是 `settingEl > (infoEl, controlEl)`；
+  `setting.settingEl.empty()` 会把 controlEl 一起清掉（脱离 DOM），
+  之后往 controlEl 画的内容**不会出现在页面上**。
+
+**为什么这个仓库价值最高**：folio 的三个自定义区块（commands / features /
+links）全部用表达式体 `render: (setting) => this.renderX(setting)` ——
+正是事故的高发写法。
+
+**为什么不用共享 mock**：`test/mocks/obsidian.ts` 的 `Setting` 桩只有
+`controlEl`（没有 `settingEl` / `infoEl`），`empty()` 也不跟踪「脱离」状态。
+「A 被清空导致 B 失效」这类缺陷在「每个属性都是独立对象」的朴素桩里
+**天然查不出来** —— 所以自包含一个能跟踪脱离状态的 fake。
+
+**反证（两个注入都当场失败，恢复后通过）**：
+
+- 注入「render 返回组件对象」→
+  `AssertionError: expected { fake: true } to be undefined`，2 例失败
+- 注入「render 里调 `settingEl.empty()`」→
+  `AssertionError: expected false to be true`，容器脱离用例失败
+
+**验证**：`npm run verify` 全通过（typecheck → lint 0 问题 → stylelint →
+test → build）；测试 **53 → 55**。
+
+**未解决/风险**：
+- **未在真实 Obsidian 里验证**（本环境无 GUI）。守卫能证明「返回值语义」
+  与「容器未脱离」两条契约成立，但证明不了渲染结果的视觉正确性。
+- **`obsidian-mineru` 尚未补这套守卫** —— 它的测试基建是自建的
+  `node test/run.mjs` + `verify-*.ts`，没有 vitest 也没有 obsidian mock，
+  要测 `settings.ts` 需先建 mock 基建，属结构性改动，本轮不做。
