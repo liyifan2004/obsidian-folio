@@ -289,6 +289,7 @@ flowchart TD
 | O-012 | P1 | **模式切换后尺寸监听静默失效**：滚动容器随模式切换换元素（`.cm-scroller` → `.markdown-preview-view`），但 ResizeObserver 仍在观察旧元素；旧节点脱离文档后不再触发回调，F-015「调整栏宽后位置不跑偏」在第一次模式切换之后就死了 | followMode.ts `checkMainModeChange` 未调用 `setupResizeListener()`；`setupResizeListener` 在 `setupFollow()` 里只于启动时执行一次 | 模式切换时同步重建 ResizeObserver（`setupResizeListener()` 内部先 `disconnect()` 再重新 observe，幂等） | ✅ 2026-11-03 完成 |
 | O-013 | P3 | 账簿「架构速览」仍描述旧的 ±0.5 比例粗估，与 O-008 已修复的实现冲突 | FEATURE_LEDGER.md:52（修复前）与 followMode.ts 实际代码不符 | 文档同步为像素几何描述 | ✅ 2026-11-03 完成 |
 | O-014 | P3 | 7 个 i18n 键在 9 张翻译表里都存在却从无调用点：`featureTriple`/`featurePageUp`/`featurePageDown`/`totalChars`/`currPos`/`modeDual`/`modeTriple`；另有未使用的导出 `getCurrentLanguage()` | 以 TS 编译器 API 解析 `translations` 对象的属性名，与全仓 `t('...')` 调用点求差集，7 键 × 9 语言 = 63 条 + 1 个导出 | 全部删除（63 条翻译 + 被清空的注释段 + 未用导出）。键集一致性由 `test/i18n.test.ts` 断言，删除后仍保持 9 语言完全同步（34 键/语言） | ✅ 2026-11-03 完成 |
+| O-015 | P1 | 设置页第一个分组标题含插件名（`t('ribbonTooltip')` = "MultiFolio: 多栏工作区"） | 官方规则 `settings-tab/no-problematic-settings-headings` 禁止标题含插件名 / settings / options / general（error 级）。同 fleet 的 obsidian-media-speed-enhancer 1.0.42 正是因此被商店审查打回、插件下架。官方 eslint 规则只查 `setName("字面量")`，本插件全部文案走 `t()` 间接引用 → 规则全程沉默，lint 全绿 | 新增文案键 `settingsGeneral` ×9，两条渲染路径的分组标题都改用它；`ribbonTooltip` 回归 Ribbon tooltip 的本用途。守卫按**实际渲染文案**逐语言断言（`test/settings-headings.test.ts`），不按源码 | ✅ 2026-11-12 完成 |
 
 本轮未列入清单、仅记录的观察（证据不足以定为缺陷）：`waitForRender` 阈值经验值（关联 F-017）；`double-page` 50ms 间隔（F-006）；「主窗格被关后应否升补侧栏」的产品语义问题（F-016）；移动端实际表现（manifest `isDesktopOnly: false`，全部功能待实机核实）。
 
@@ -303,6 +304,12 @@ flowchart TD
   - O-009：建立 vitest 测试体系（`vitest.config.mts` + `test/mocks/obsidian.ts` 桩模块 + `test/scroll-math.test.ts` + `test/i18n.test.ts`），共 28 例全绿。依赖升级：`@types/node` ^16→^22、`esbuild` 0.17.3→^0.28.0（vitest 5 的 peer 要求），与 jev/adaptive-workspace 对齐。
   - O-010：新增 `.github/workflows/ci.yml`（push/PR 跑 typecheck → lint → stylelint → test → build），并给 release.yml 补上 test 步骤，使发布产物必须来自测试通过的树。
   - 验证：`npm run typecheck` 通过；`npm run lint` 0 error（1 个既有警告 `settings-tab/prefer-setting-definitions`，属 O-006 已决策不采纳的项，基线未变）；`npm run lint:styles` 通过；`npm test` 28/28；`npm run build` 通过，产物中已无旧的 ±0.5 逻辑。**未做**：Obsidian 实机验证（本环境无 Obsidian）——重点手测项：三栏模式下从左/右窗格滚动时主窗格是否精确对齐（本次修复的核心场景）、双↔三切换不累积窗格、停止后重启复用窗格、拖动重叠滑块无副作用。
+- 2026-11-12（自动化轮 · 第十七轮）：完成 O-015 —— 设置页分组标题含插件名。
+  - 问题：设置页第一个分组标题用的是 `t('ribbonTooltip')` = "MultiFolio: 多栏工作区"（含插件名）。官方规则 `settings-tab/no-problematic-settings-headings` 禁止标题含插件名 / settings / options / general，**error 级**。同 fleet 的 obsidian-media-speed-enhancer 1.0.42 正是因此被商店审查打回、插件从目录列表下架。
+  - 为什么 lint 没报：官方规则只检查 `setName("字面量")` 这种直接字面量参数，而本插件所有文案都走 `t()` 间接引用 —— 规则全程沉默。
+  - 方案：新增文案键 `settingsGeneral` ×9（Workspace / 工作区 / 工作區 / ワークスペース / 작업 공간 / Espace de travail / Arbeitsbereich / Espacio de trabajo / مساحة العمل），两条渲染路径的分组标题都改用它。`ribbonTooltip` 回归它本来的用途 —— Ribbon 图标的 tooltip。
+  - 验证：新增 `test/settings-headings.test.ts` 5 例（按**实际渲染文案**逐语言断言，不是按源码）；反证（标题改回 `t('ribbonTooltip')`）→ 2 例失败。测试 55 → 60。`npm run verify` 全通过。
+  - 同步改动：`test/mocks/obsidian.ts` 的 `Setting` 桩现在记录 `name` / `desc` / `heading`，用于比对两条路径的标题集合。
 - 2026-11-03（自动化轮）：完成 O-011（跟随窗格模式跟随）、O-012（模式切换后尺寸监听失效）、O-013（账簿文档漂移）。
   - O-011：`checkMainModeChange` 新增 `syncFollowerModes(mode)`，用 `leaf.getViewState()` 取状态、改写 `state.mode` 与 `state.source`、`leaf.setViewState()` 写回。此前跟随窗格永不跟随主窗格的编辑/阅读切换（账簿 F-014 已自述为「跨功能缝隙」）。除产品一致性外还有几何后果：两种模式的滚动容器不同（`.cm-scroller` vs `.markdown-preview-view`），跨模式时像素几何同步会把两个不同坐标系拿来互逆。
   - O-012：`checkMainModeChange` 增加 `setupResizeListener()`。滚动容器随模式切换换元素，旧 ResizeObserver 仍观察已脱离文档的旧节点 → 回调不再触发 → F-015 在第一次模式切换后静默失效。`setupResizeListener()` 内部先 `disconnect()` 再重新 observe，重复调用幂等。

@@ -217,21 +217,44 @@ export function createContainerEl(): HTMLElement {
 	return make("div");
 }
 
+/**
+ * 记录所有被创建出来的 Setting 行。
+ *
+ * 「分组标题」在两条路径里的载体不同：
+ *   - 命令式：`setHeading()` 产生的一行；
+ *   - 声明式：`group.heading` 字段。
+ *
+ * 所以要断言「两条路径的标题一致」，桩必须把标题行记下来。
+ */
+export const __createdSettings: Array<{
+	name?: string;
+	heading: boolean;
+	desc?: string;
+}> = [];
+
 export class Setting {
 	/** The control column — where custom render blocks put their content. */
 	controlEl: HTMLElement = createContainerEl();
+	name?: string;
+	desc?: string;
+	heading = false;
 
-	constructor(_el: unknown) {}
+	constructor(_el: unknown) {
+		__createdSettings.push(this);
+	}
 
-	setName(): this {
+	setName(name?: string): this {
+		this.name = name;
 		return this;
 	}
 
-	setDesc(): this {
+	setDesc(desc?: string): this {
+		this.desc = desc;
 		return this;
 	}
 
 	setHeading(): this {
+		this.heading = true;
 		return this;
 	}
 

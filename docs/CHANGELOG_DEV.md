@@ -2,6 +2,29 @@
 
 面向维护者的开发日志：每次实质性开发记一条。只记有长期价值的内容，调试细节不入。
 
+## 2026-11-12 · 设置页分组标题不再含插件名（O-015）
+
+设置页第一个分组标题用的是 `t('ribbonTooltip')`，值是 "MultiFolio: 多栏工作区" ——
+**含插件名**。
+
+官方规则 `settings-tab/no-problematic-settings-headings` 禁止设置分组标题里出现
+插件名 / `settings` / `options` / `general`，**error 级**。
+同 fleet 的 obsidian-media-speed-enhancer 1.0.42 就是因为「设置标题重复插件名」
+被商店审查打回、插件从目录列表下架。
+
+**为什么 lint 全绿**：官方规则只检查 `setName("字面量")` 这种直接字面量参数，
+而本插件所有文案都走 `t()` 间接引用 —— 规则全程沉默。
+
+**修法**：新增文案键 `settingsGeneral` ×9（Workspace / 工作区 / 工作區 /
+ワークスペース / 작업 공간 / Espace de travail / Arbeitsbereich /
+Espacio de trabajo / مساحة العمل），两条渲染路径的分组标题都改用它。
+`ribbonTooltip` 回归它本来的用途 —— Ribbon 图标的 tooltip。
+
+**守卫**：新增 `test/settings-headings.test.ts`，按**实际渲染出来的文案**
+逐语言断言（不是按源码），并比对两条路径的标题集合。
+反证：标题改回 `t('ribbonTooltip')` → 2 例失败。
+测试 55 → 60；`npm run verify` 全通过。
+
 ## 2026-10-23 第一批：摸底 + 功能账簿 + 可靠性修复（O-001–O-005）
 
 **目标与完成内容**：建立长期维护依据（功能账簿、技术调研），并修复首轮审查确认的 2 个 P1、3 个 P2 缺陷。

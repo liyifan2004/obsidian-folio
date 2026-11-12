@@ -55,7 +55,17 @@ export class DualPaneSettingTab extends PluginSettingTab {
 		return [
 			{
 				type: 'group',
-				heading: t('ribbonTooltip'),
+				// **分组标题不能含插件名。**
+				// 官方规则 `settings-tab/no-problematic-settings-headings` 禁止
+				// 标题里出现插件名 / settings / options / general。
+				// 同 fleet 的 obsidian-media-speed-enhancer 1.0.42 就是因为
+				// 「设置标题重复插件名」被商店审查打回、插件从目录列表下架。
+				//
+				// 这里原先用的是 `t('ribbonTooltip')`（"MultiFolio: 多栏工作区"）——
+				// 那是 Ribbon 图标的 tooltip，**含插件名**，用在设置分组标题上是错的。
+				// 官方 eslint 规则只检查**字面量**参数，查不出 `t('...')` 这种
+				// 间接引用，所以 lint 全绿也不代表没问题。
+				heading: t('settingsGeneral'),
 				items: [
 					{
 						name: t('settingOverlap'),
@@ -288,8 +298,10 @@ export class DualPaneSettingTab extends PluginSettingTab {
 		containerEl.empty();
 
 		// ========== 标题 ==========
+		// 与声明式路径同一个 key（`settingsGeneral`）——
+		// 分组标题不能含插件名，详见 getSettingDefinitions 里的说明。
 		new Setting(containerEl)
-			.setName(t('ribbonTooltip'))
+			.setName(t('settingsGeneral'))
 			.setHeading();
 
 		// ========== 重叠行数设置 ==========

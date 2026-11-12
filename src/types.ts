@@ -52,6 +52,7 @@ const translations: Record<Language, Record<string, string>> = {
 		'settingLanguage': 'Language',
 		'settingLanguageAuto': 'Auto (follow Obsidian)',
 		'settingLanguageDesc': 'Display language (auto-detected by default). Command names update after reloading the plugin.',
+		'settingsGeneral': 'Workspace',
 		'settingHotkeys': 'Hotkeys',
 		'settingHotkeysDesc': 'Configure keyboard shortcuts in Obsidian Settings → Hotkeys',
 		
@@ -104,6 +105,7 @@ const translations: Record<Language, Record<string, string>> = {
 		'settingLanguage': '语言',
 		'settingLanguageAuto': '自动（跟随 Obsidian）',
 		'settingLanguageDesc': '显示语言（默认自动检测）。命令名称在重载插件后更新。',
+		'settingsGeneral': '工作区',
 		'settingHotkeys': '快捷键',
 		'settingHotkeysDesc': '在 Obsidian 设置 → 快捷键中配置',
 		
@@ -156,6 +158,7 @@ const translations: Record<Language, Record<string, string>> = {
 		'settingLanguage': '語言',
 		'settingLanguageAuto': '自動（跟隨 Obsidian）',
 		'settingLanguageDesc': '顯示語言（預設自動檢測）。命令名稱在重載外掛後更新。',
+		'settingsGeneral': '工作區',
 		'settingHotkeys': '快捷鍵',
 		'settingHotkeysDesc': '在 Obsidian 設定 → 快捷鍵中設定',
 		
@@ -209,6 +212,7 @@ const translations: Record<Language, Record<string, string>> = {
 		'settingLanguage': '言語',
 		'settingLanguageAuto': '自動（Obsidian に合わせる）',
 		'settingLanguageDesc': '表示言語（デフォルトで自動検出）。コマンド名はプラグインの再読み込み後に更新されます。',
+		'settingsGeneral': 'ワークスペース',
 		'settingHotkeys': 'ホットキー',
 		'settingHotkeysDesc': 'Obsidian 設定 → ホットキーで設定',
 		
@@ -262,6 +266,7 @@ const translations: Record<Language, Record<string, string>> = {
 		'settingLanguage': '언어',
 		'settingLanguageAuto': '자동 (Obsidian 설정 따름)',
 		'settingLanguageDesc': '표시 언어 (기본값: 자동 감지). 명령어 이름은 플러그인을 다시 로드한 후 업데이트됩니다.',
+		'settingsGeneral': '작업 공간',
 		'settingHotkeys': '단축키',
 		'settingHotkeysDesc': 'Obsidian 설정 → 단축키에서 설정',
 		
@@ -315,6 +320,7 @@ const translations: Record<Language, Record<string, string>> = {
 		'settingLanguage': 'Langue',
 		'settingLanguageAuto': 'Auto (suivre Obsidian)',
 		'settingLanguageDesc': 'Langue d\'affichage (détection automatique par défaut). Les noms de commandes sont mis à jour après rechargement du plugin.',
+		'settingsGeneral': 'Espace de travail',
 		'settingHotkeys': 'Raccourcis',
 		'settingHotkeysDesc': 'Configurer dans Obsidian → Raccourcis',
 		
@@ -368,6 +374,7 @@ const translations: Record<Language, Record<string, string>> = {
 		'settingLanguage': 'Sprache',
 		'settingLanguageAuto': 'Automatisch (Obsidian folgen)',
 		'settingLanguageDesc': 'Anzeigesprache (Standard: automatisch). Befehlsnamen werden nach dem Neuladen des Plugins aktualisiert.',
+		'settingsGeneral': 'Arbeitsbereich',
 		'settingHotkeys': 'Tastenkürzel',
 		'settingHotkeysDesc': 'In Obsidian Einstellungen → Tastenkürzel konfigurieren',
 		
@@ -421,6 +428,7 @@ const translations: Record<Language, Record<string, string>> = {
 		'settingLanguage': 'Idioma',
 		'settingLanguageAuto': 'Automático (seguir Obsidian)',
 		'settingLanguageDesc': 'Idioma de visualización (detección automática por defecto). Los nombres de comandos se actualizan al recargar el complemento.',
+		'settingsGeneral': 'Espacio de trabajo',
 		'settingHotkeys': 'Atajos',
 		'settingHotkeysDesc': 'Configurar en Obsidian → Atajos',
 		
@@ -474,6 +482,7 @@ const translations: Record<Language, Record<string, string>> = {
 		'settingLanguage': 'اللغة',
 		'settingLanguageAuto': 'تلقائي (تبع Obsidian)',
 		'settingLanguageDesc': 'لغة العرض (الكشف التلقائي افتراضيًا). تُحدَّث أسماء الأوامر بعد إعادة تحميل الإضافة.',
+		'settingsGeneral': 'مساحة العمل',
 		'settingHotkeys': 'اختصارات لوحة المفاتيح',
 		'settingHotkeysDesc': 'تكوين في إعدادات Obsidian → اختصارات',
 		
