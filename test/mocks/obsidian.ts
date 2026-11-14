@@ -232,6 +232,33 @@ export const __createdSettings: Array<{
 	desc?: string;
 }> = [];
 
+/**
+ * 控件的**约束与回调**记录。
+ *
+ * 之前 `addSlider()` / `addDropdown()` 都是空实现，于是两件事对所有断言隐形：
+ *
+ *   1. 用户改了设置有没有落盘（`saveSettings()` 有没有被调用）；
+ *   2. 声明式路径与命令式路径的**约束是否一致**
+ *      （滑块 min/max/step、下拉选项集合）。
+ *
+ * 第 2 条尤其重要：两条路径各自硬编码同一组约束，
+ * 改了一处另一处不会跟着变，用户就能写出非法值。
+ * 反证（2026-11-15 实测）：把声明式滑块的 max 从 10 改成 99，
+ * 原来 64 个测试**全部通过**。
+ */
+export const __createdControls: Array<{
+	kind: 'slider' | 'dropdown';
+	name?: string;
+	/** 滑块的 min / max / step。 */
+	min?: number;
+	max?: number;
+	step?: number;
+	/** 下拉的选项集合（value 的数组）。 */
+	options?: string[];
+	/** 触发一次用户改动。 */
+	change: (value: unknown) => Promise<void> | void;
+}> = [];
+
 export class Setting {
 	/** The control column — where custom render blocks put their content. */
 	controlEl: HTMLElement = createContainerEl();
@@ -283,11 +310,56 @@ export class Setting {
 		return this;
 	}
 
-	addDropdown(): this {
+	addDropdown(cb?: (d: unknown) => void): this {
+		const record: (typeof __createdControls)[number] = {
+			kind: 'dropdown',
+			name: this.name,
+			options: [],
+			change: () => {},
+		};
+		__createdControls.push(record);
+
+		const dropdown = {
+			addOption(value: string) {
+				record.options!.push(value);
+				return this;
+			},
+			setValue() {
+				return this;
+			},
+			onChange(handler: (value: string) => Promise<void> | void) {
+				record.change = (value: unknown) => handler(value as string);
+				return this;
+			},
+		};
+		cb?.(dropdown);
 		return this;
 	}
 
-	addSlider(): this {
+	addSlider(cb?: (s: unknown) => void): this {
+		const record: (typeof __createdControls)[number] = {
+			kind: 'slider',
+			name: this.name,
+			change: () => {},
+		};
+		__createdControls.push(record);
+
+		const slider = {
+			setLimits(min: number, max: number, step: number) {
+				record.min = min;
+				record.max = max;
+				record.step = step;
+				return this;
+			},
+			setValue() {
+				return this;
+			},
+			onChange(handler: (value: number) => Promise<void> | void) {
+				record.change = (value: unknown) => handler(value as number);
+				return this;
+			},
+		};
+		cb?.(slider);
 		return this;
 	}
 

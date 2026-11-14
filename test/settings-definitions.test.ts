@@ -22,28 +22,36 @@ import { DEFAULT_SETTINGS, setLanguage } from "../src/types";
  *      （1.13+ 用 update()，旧版用 display()）。
  */
 
-/** 最小可用的插件桩：设置页只用到 plugin.settings 与 plugin.saveSettings()。 */
-function makePlugin(): Plugin & {
+/**
+ * 最小可用的插件桩：设置页只用到 plugin.settings 与 plugin.saveSettings()。
+ *
+ * `saveSettings` 必须**计数**。它以前是个空实现，于是「改了设置但没落盘」
+ * 这类缺陷对任何断言都隐形 —— 写进 `plugin.settings` 就算通过，
+ * 而真正决定用户重启后还在不在的是 `saveSettings()` 有没有被调用。
+ */
+type CountingPlugin = Plugin & {
 	settings: typeof DEFAULT_SETTINGS;
 	saveSettings: () => Promise<void>;
-} {
-	return {
+	saveCount: number;
+};
+
+function makePlugin(): CountingPlugin {
+	const plugin = {
 		settings: { ...DEFAULT_SETTINGS },
+		saveCount: 0,
 		saveSettings: async () => {
-			/* noop */
+			plugin.saveCount++;
 		},
-	} as unknown as Plugin & {
-		settings: typeof DEFAULT_SETTINGS;
-		saveSettings: () => Promise<void>;
 	};
+	return plugin as unknown as CountingPlugin;
 }
 
-function makeTab(): DualPaneSettingTab {
+function makeTab(plugin: CountingPlugin = makePlugin()): DualPaneSettingTab {
 	// The mock's `App`/`Plugin` are structural stand-ins, not the real
 	// classes, so cast through `unknown` at the boundary.
 	const tab = new DualPaneSettingTab(
 		{} as unknown as ConstructorParameters<typeof DualPaneSettingTab>[0],
-		makePlugin() as unknown as ConstructorParameters<typeof DualPaneSettingTab>[1],
+		plugin as unknown as ConstructorParameters<typeof DualPaneSettingTab>[1],
 	);
 	// The imperative renderer needs a container to render into.
 	tab.containerEl = createContainerEl();
@@ -121,6 +129,32 @@ describe("控件读写绑定", () => {
 		const tab = makeTab();
 		await tab.setControlValue("overlapLines", 7);
 		expect(tab.getControlValue("overlapLines")).toBe(7);
+	});
+
+	// 这两条断言的对象是**用户重启后还能不能保住设置**，
+	// 不是「某个中间结构的记录」。
+	// 反证（2026-11-15 实测）：把 setControlValue 里的
+	// `await this.plugin.saveSettings()` 删掉，原来 64 个测试**全部通过** ——
+	// 因为旧桩的 saveSettings 是空实现，调用与否都看不出来。
+	it("setControlValue 落盘（1.13+ 用户改完设置重启后还在）", async () => {
+		const plugin = makePlugin();
+		const tab = makeTab(plugin);
+
+		await tab.setControlValue("overlapLines", 7);
+
+		expect(plugin.settings.overlapLines).toBe(7);
+		expect(plugin.saveCount, "改设置后没有调用 saveSettings —— 用户的设置不会落盘").toBe(1);
+	});
+
+	it("setControlValue 落盘（语言切换同样要落盘）", async () => {
+		const plugin = makePlugin();
+		const tab = makeTab(plugin);
+
+		await tab.setControlValue("language", "ja");
+		setLanguage("en");
+
+		expect(plugin.settings.language).toBe("ja");
+		expect(plugin.saveCount, "语言切换后没有调用 saveSettings").toBe(1);
 	});
 });
 

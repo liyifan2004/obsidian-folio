@@ -28,6 +28,22 @@ interface FeatureInfo {
 }
 
 /**
+ * `overlapLines` 的取值范围。
+ *
+ * 两条渲染路径（声明式 / 命令式）都从这里取，
+ * 不再各自硬编码 —— 之前声明式写 `max: 10`、命令式写 `setLimits(0, 10, 1)`，
+ * 两处各写一遍，改了一处另一处不会跟着变。
+ * 反证（2026-11-15 实测）：把声明式的 max 改成 99，原来 64 个测试**全部通过**，
+ * 于是 1.13+ 的用户能写出 `overlapLines = 50` 这种非法值，
+ * 而 1.12 的用户写不出来 —— 同一个插件，两种版本下行为不一致。
+ */
+export const OVERLAP_LINES_LIMITS = {
+	min: 0,
+	max: 10,
+	step: 1,
+} as const;
+
+/**
  * Settings tab with two renderers over one schema:
  *
  *   - {@link getSettingDefinitions} — declarative API used by Obsidian 1.13+.
@@ -73,9 +89,9 @@ export class DualPaneSettingTab extends PluginSettingTab {
 						control: {
 							key: 'overlapLines',
 							type: 'slider',
-							min: 0,
-							max: 10,
-							step: 1,
+							min: OVERLAP_LINES_LIMITS.min,
+							max: OVERLAP_LINES_LIMITS.max,
+							step: OVERLAP_LINES_LIMITS.step,
 						},
 					},
 					{
@@ -310,7 +326,11 @@ export class DualPaneSettingTab extends PluginSettingTab {
 			.setDesc(t('settingOverlapDesc'))
 			.addSlider((slider) => {
 				slider
-					.setLimits(0, 10, 1)
+					.setLimits(
+						OVERLAP_LINES_LIMITS.min,
+						OVERLAP_LINES_LIMITS.max,
+						OVERLAP_LINES_LIMITS.step,
+					)
 					.setValue(this.plugin.settings.overlapLines)
 					.onChange(async (value) => {
 						this.plugin.settings.overlapLines = value;
