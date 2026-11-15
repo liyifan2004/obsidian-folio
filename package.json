@@ -1,6 +1,6 @@
 {
   "name": "multifolio",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "MultiFolio - A continuous multi-column workspace for seamless reading and editing",
   "main": "main.js",
   "scripts": {

@@ -290,6 +290,7 @@ flowchart TD
 | O-013 | P3 | 账簿「架构速览」仍描述旧的 ±0.5 比例粗估，与 O-008 已修复的实现冲突 | FEATURE_LEDGER.md:52（修复前）与 followMode.ts 实际代码不符 | 文档同步为像素几何描述 | ✅ 2026-11-03 完成 |
 | O-014 | P3 | 7 个 i18n 键在 9 张翻译表里都存在却从无调用点：`featureTriple`/`featurePageUp`/`featurePageDown`/`totalChars`/`currPos`/`modeDual`/`modeTriple`；另有未使用的导出 `getCurrentLanguage()` | 以 TS 编译器 API 解析 `translations` 对象的属性名，与全仓 `t('...')` 调用点求差集，7 键 × 9 语言 = 63 条 + 1 个导出 | 全部删除（63 条翻译 + 被清空的注释段 + 未用导出）。键集一致性由 `test/i18n.test.ts` 断言，删除后仍保持 9 语言完全同步（34 键/语言） | ✅ 2026-11-03 完成 |
 | O-015 | P1 | 设置页第一个分组标题含插件名（`t('ribbonTooltip')` = "MultiFolio: 多栏工作区"） | 官方规则 `settings-tab/no-problematic-settings-headings` 禁止标题含插件名 / settings / options / general（error 级）。同 fleet 的 obsidian-media-speed-enhancer 1.0.42 正是因此被商店审查打回、插件下架。官方 eslint 规则只查 `setName("字面量")`，本插件全部文案走 `t()` 间接引用 → 规则全程沉默，lint 全绿 | 新增文案键 `settingsGeneral` ×9，两条渲染路径的分组标题都改用它；`ribbonTooltip` 回归 Ribbon tooltip 的本用途。守卫按**实际渲染文案**逐语言断言（`test/settings-headings.test.ts`），不按源码 | ✅ 2026-11-12 完成 |
+| O-016 | P1 | ① 滑块约束在两条渲染路径各硬编码一遍（声明式 `max: 10` / 命令式 `setLimits(0,10,1)`），改一处另一处不跟着变 → 1.13+ 的用户能写出 `overlapLines = 50`，1.12 的用户写不出来，而该值参与滚动偏移计算（`src/followMode.ts`），50 行重叠在双栏阅读里是严重视觉错位且无任何提示（未声明官方 `validate`）。② 两条路径的落盘行为无断言 —— `saveSettings()` 桩是空实现无调用计数，「改了设置但没写盘」对所有断言隐形，而这两个是本插件仅有的持久化设置 | 反证实测：删掉全部 `saveSettings()` 调用 → 64/64 全绿；声明式 max 改 99 → 64/64 全绿；命令式 max 改 99 → 64/64 全绿 | ① 提取 `OVERLAP_LINES_LIMITS` 共享常量，两条路径引用同一来源。② 桩加 `saveCount`，两条路径各断言一次落盘。新增 `test/settings-path-parity.test.ts`（6 例），断言对象是用户能感知的东西（滑块能拖到哪、下拉有哪些选项、改完会不会保住）；mock 的 `addSlider`/`addDropdown` 改为记录约束与回调 | ✅ 2026-11-15 完成 |
 
 本轮未列入清单、仅记录的观察（证据不足以定为缺陷）：`waitForRender` 阈值经验值（关联 F-017）；`double-page` 50ms 间隔（F-006）；「主窗格被关后应否升补侧栏」的产品语义问题（F-016）；移动端实际表现（manifest `isDesktopOnly: false`，全部功能待实机核实）。
 
@@ -304,6 +305,13 @@ flowchart TD
   - O-009：建立 vitest 测试体系（`vitest.config.mts` + `test/mocks/obsidian.ts` 桩模块 + `test/scroll-math.test.ts` + `test/i18n.test.ts`），共 28 例全绿。依赖升级：`@types/node` ^16→^22、`esbuild` 0.17.3→^0.28.0（vitest 5 的 peer 要求），与 jev/adaptive-workspace 对齐。
   - O-010：新增 `.github/workflows/ci.yml`（push/PR 跑 typecheck → lint → stylelint → test → build），并给 release.yml 补上 test 步骤，使发布产物必须来自测试通过的树。
   - 验证：`npm run typecheck` 通过；`npm run lint` 0 error（1 个既有警告 `settings-tab/prefer-setting-definitions`，属 O-006 已决策不采纳的项，基线未变）；`npm run lint:styles` 通过；`npm test` 28/28；`npm run build` 通过，产物中已无旧的 ±0.5 逻辑。**未做**：Obsidian 实机验证（本环境无 Obsidian）——重点手测项：三栏模式下从左/右窗格滚动时主窗格是否精确对齐（本次修复的核心场景）、双↔三切换不累积窗格、停止后重启复用窗格、拖动重叠滑块无副作用。
+- 2026-11-15（自动化轮 · 第二十轮）：完成 O-016 —— 滑块约束单一来源 + 落盘断言。
+  - 问题一：滑块约束在两条渲染路径各硬编码一遍（声明式 `control: {min:0,max:10,step:1}` / 命令式 `setLimits(0,10,1)`）。改一处另一处不跟着变 → 1.13+ 的用户能写出 `overlapLines = 50`，1.12 的用户写不出来。该值参与滚动偏移计算（`src/followMode.ts`），50 行重叠在双栏阅读里是严重视觉错位，且插件未声明官方 `validate`，用户拿不到任何提示。
+  - 问题二：两条路径的落盘行为没有任何断言 —— 测试桩 `saveSettings()` 是空实现且没有调用计数，「改了设置但没写盘」对所有断言隐形。`overlapLines` 与 `language` 是本插件仅有的两个持久化设置，写丢失 = 用户每次重启都要重设。
+  - 反证（修复前 64 例全绿）：删掉全部 `saveSettings()` 调用 → 修复后 5 例失败；声明式 max 改 99 → 2 例失败；命令式 max 改 99 → 1 例失败。
+  - 方案：提取 `OVERLAP_LINES_LIMITS` 共享常量（`src/settings.ts`），两条路径引用同一来源；mock 的 `addSlider`/`addDropdown` 从空实现改为记录约束与回调；桩加 `saveCount`。
+  - 验证：新增 `test/settings-path-parity.test.ts`（6 例）+ `test/settings-definitions.test.ts` 2 例落盘断言，断言对象是用户能感知的东西（滑块能拖到哪、下拉有哪些选项、改完会不会保住），不是「某个中间结构的记录」。测试 64 → 72，`npm run verify` 全通过。
+  - 版本：1.0.6 → 1.0.7（`npm version patch` 同步 manifest / package.json / package-lock.json / versions.json 四处）。
 - 2026-11-12（自动化轮 · 第十七轮）：完成 O-015 —— 设置页分组标题含插件名。
   - 问题：设置页第一个分组标题用的是 `t('ribbonTooltip')` = "MultiFolio: 多栏工作区"（含插件名）。官方规则 `settings-tab/no-problematic-settings-headings` 禁止标题含插件名 / settings / options / general，**error 级**。同 fleet 的 obsidian-media-speed-enhancer 1.0.42 正是因此被商店审查打回、插件从目录列表下架。
   - 为什么 lint 没报：官方规则只检查 `setName("字面量")` 这种直接字面量参数，而本插件所有文案都走 `t()` 间接引用 —— 规则全程沉默。
