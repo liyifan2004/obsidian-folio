@@ -158,6 +158,20 @@ export function createContainerEl(): HTMLElement {
 			classes: new Set<string>(),
 			textContent: "",
 			style: {},
+			/**
+			 * 这个元素**直接**创建出来的可见内容（tag / 文本 / 类名）。
+			 *
+			 * 为什么要单独记一份，而不是只靠 `textContent`：
+			 * `textContent` 是元素自己的文字，孩子上的文字不在里面；
+			 * 而设置页的正文画在**嵌套**容器里（`controlEl` → `p` → 文字），
+			 * 要断言「用户能看到的文字」就得跨容器边界收集。
+			 *
+			 * 反证（2026-11-15 实测）：把 `renderCommands()` 的 for 循环整个删掉
+			 * —— 命令列表的内容全没 —— 原来 64 个测试**全部通过**。
+			 * 因为命令名是通过 `createDiv({text})` 画进嵌套容器的，
+			 * 没有任何断言看得到它。
+			 */
+			__visible: [] as Array<{ tag: string; text: string; cls: string }>,
 			appendChild(child: HTMLElement) {
 				el.children.push(child);
 				return child;
@@ -180,6 +194,9 @@ export function createContainerEl(): HTMLElement {
 			},
 			empty() {
 				el.children.length = 0;
+				// 清空也意味着「这些文字不再被用户看到」——
+				// 真实 DOM 里 empty() 会移除子节点，它们的文字随之消失。
+				el.__visible.length = 0;
 			},
 			setCssProps(_props: Record<string, string>) {
 				/* noop */
@@ -195,6 +212,11 @@ export function createContainerEl(): HTMLElement {
 				if (options?.cls) child.addClass(options.cls);
 				if (options?.text) child.setText(options.text);
 				el.appendChild(child);
+				el.__visible.push({
+					tag: "div",
+					text: options?.text ?? "",
+					cls: options?.cls ?? "",
+				});
 				return child;
 			},
 			createSpan(options?: { cls?: string; text?: string }): HTMLElement {
@@ -202,6 +224,11 @@ export function createContainerEl(): HTMLElement {
 				if (options?.cls) child.addClass(options.cls);
 				if (options?.text) child.setText(options.text);
 				el.appendChild(child);
+				el.__visible.push({
+					tag: "span",
+					text: options?.text ?? "",
+					cls: options?.cls ?? "",
+				});
 				return child;
 			},
 			createEl(tag: string, options?: { cls?: string; text?: string }): HTMLElement {
@@ -209,12 +236,69 @@ export function createContainerEl(): HTMLElement {
 				if (options?.cls) child.addClass(options.cls);
 				if (options?.text) child.setText(options.text);
 				el.appendChild(child);
+				el.__visible.push({
+					tag,
+					text: options?.text ?? "",
+					cls: options?.cls ?? "",
+				});
 				return child;
 			},
 		};
 		return el as unknown as HTMLElement;
 	};
 	return make("div");
+}
+
+/**
+ * 跨容器边界收集「用户能看到的文字」。
+ *
+ * 从 `el` 出发递归走 `children`，把每个元素**直接**创建的可见内容
+ * 收成 `"<tag>|<text>"` 的列表。
+ *
+ * 类名不收 —— 类名是样式，不是用户能读到的信息。
+ * 空文本不收 —— 用户看不到空元素。
+ *
+ * 这个函数是从 obsidian-jev-inbox-router 搬过来的（同 fleet 的机械复用，
+ * 不是重新设计）。JEV 那边先加的，理由也一样：
+ * 断言的对象必须是**用户能感知的东西**，而不是「某个中间结构的记录」。
+ */
+export function collectVisibleContent(el: HTMLElement): string[] {
+	const out: string[] = [];
+	const walk = (node: HTMLElement) => {
+		const visible = (node as unknown as {
+			__visible?: Array<{ tag: string; text: string; cls: string }>;
+		}).__visible;
+		for (const v of visible ?? []) {
+			if (v.text) out.push(`${v.tag}|${v.text}`);
+		}
+		const children = (node as unknown as { children?: unknown[] }).children ?? [];
+		for (const child of children) walk(child as HTMLElement);
+	};
+	walk(el);
+	return out;
+}
+
+/**
+ * 与 {@link collectVisibleContent} 相同，但额外带上类名。
+ *
+ * 「这条文字是命令名还是功能标题」只有类名能区分 ——
+ * 两者都是 `span`，光看 tag 分不出来。
+ * 格式：`"<tag>|<cls>|<text>"`。
+ */
+export function collectVisibleContentWithClass(el: HTMLElement): string[] {
+	const out: string[] = [];
+	const walk = (node: HTMLElement) => {
+		const visible = (node as unknown as {
+			__visible?: Array<{ tag: string; text: string; cls: string }>;
+		}).__visible;
+		for (const v of visible ?? []) {
+			if (v.text) out.push(`${v.tag}|${v.cls}|${v.text}`);
+		}
+		const children = (node as unknown as { children?: unknown[] }).children ?? [];
+		for (const child of children) walk(child as HTMLElement);
+	};
+	walk(el);
+	return out;
 }
 
 /**
@@ -262,21 +346,44 @@ export const __createdControls: Array<{
 export class Setting {
 	/** The control column — where custom render blocks put their content. */
 	controlEl: HTMLElement = createContainerEl();
+	/**
+	 * The info column — 名字与描述的容器。
+	 *
+	 * 真实 Obsidian 的结构是 `settingEl > (infoEl, controlEl)`，
+	 * 且 `infoEl > (nameEl, descEl)`。名字画在信息列，内容画在控制列。
+	 */
+	infoEl: HTMLElement = createContainerEl();
 	name?: string;
 	desc?: string;
 	heading = false;
 
-	constructor(_el: unknown) {
+	constructor(el: unknown) {
 		__createdSettings.push(this);
+		// 真实 Obsidian 里，这一行会挂在传入的父容器上。
+		// 桩以前忽略了这个参数，于是 `controlEl` 与父容器没有任何关系 ——
+		// 从父容器收集可见内容就什么都收不到。
+		const parent = el as { children?: unknown[]; appendChild?: (c: unknown) => unknown } | undefined;
+		if (parent && typeof parent.appendChild === "function") {
+			parent.appendChild(this.infoEl);
+			parent.appendChild(this.controlEl);
+		}
 	}
 
 	setName(name?: string): this {
 		this.name = name;
+		// 名字在真实 Obsidian 里是信息列里的 `div.setting-item-name` ——
+		// 用户看得见的文字。记进可见内容，「标题文案变了」才查得出来。
+		if (name) {
+			this.infoEl.createDiv({ cls: "setting-item-name", text: name });
+		}
 		return this;
 	}
 
 	setDesc(desc?: string): this {
 		this.desc = desc;
+		if (desc) {
+			this.infoEl.createDiv({ cls: "setting-item-description", text: desc });
+		}
 		return this;
 	}
 

@@ -113,7 +113,18 @@ export class DualPaneSettingTab extends PluginSettingTab {
 						name: t('settingHotkeysDesc'),
 						desc: t('settingHotkeysDesc'),
 						searchable: false,
-						render: (setting: Setting) => this.renderCommands(setting),
+						render: (setting: Setting) => {
+							// 自定义块要占满整行，所以清掉默认的名称与描述 ——
+							// 标题由 `group.heading` 提供（Obsidian 自己渲染成 <h3>），
+							// 说明文字画进正文区。
+							// 命令式路径做的是同一件事，两条路径的可见内容因此一致。
+							setting.infoEl.empty();
+							setting.controlEl.createEl("p", {
+								text: t('settingHotkeysDesc'),
+								cls: "multifolio-section-desc",
+							});
+							this.renderCommands(setting);
+						},
 					},
 				],
 			},
@@ -125,7 +136,10 @@ export class DualPaneSettingTab extends PluginSettingTab {
 						name: t('featureSync'),
 						desc: t('featureSyncDesc'),
 						searchable: false,
-						render: (setting: Setting) => this.renderFeatures(setting),
+						render: (setting: Setting) => {
+							setting.infoEl.empty();
+							this.renderFeatures(setting);
+						},
 					},
 				],
 			},
@@ -137,7 +151,10 @@ export class DualPaneSettingTab extends PluginSettingTab {
 						name: t('support'),
 						desc: t('feedback'),
 						searchable: false,
-						render: (setting: Setting) => this.renderLinks(setting),
+						render: (setting: Setting) => {
+							setting.infoEl.empty();
+							this.renderLinks(setting);
+						},
 					},
 				],
 			},
@@ -358,14 +375,23 @@ export class DualPaneSettingTab extends PluginSettingTab {
 			});
 
 		// ========== 快捷键设置说明 ==========
+		//
+		// 分组标题行与声明式路径的 `group.heading` 对应。
+		// 声明式路径的标题由 Obsidian 自己渲染（`group.heading` 字段），
+		// 不在 Setting 行里；命令式路径必须自己画一行。
+		// **两条路径的可见内容必须一致** ——
+		// 标题行只画一次，不要在下面的内容行上重复写标题。
 		new Setting(containerEl)
 			.setName(t('settingHotkeys'))
-			.setDesc(t('settingHotkeysDesc'))
 			.setHeading();
 
 		// ========== 命令列表 ==========
 		const commandsSetting = new Setting(containerEl);
-		commandsSetting.setName(t('settingHotkeys'));
+		// 说明文字画进正文区，与声明式路径同一位置。
+		commandsSetting.controlEl.createEl("p", {
+			text: t('settingHotkeysDesc'),
+			cls: "multifolio-section-desc",
+		});
 		this.renderCommands(commandsSetting);
 
 		// ========== 功能说明 ==========
@@ -374,7 +400,6 @@ export class DualPaneSettingTab extends PluginSettingTab {
 			.setHeading();
 
 		const featuresSetting = new Setting(containerEl);
-		featuresSetting.setName(t('docs'));
 		this.renderFeatures(featuresSetting);
 
 		// ========== 支持链接 ==========
@@ -383,7 +408,6 @@ export class DualPaneSettingTab extends PluginSettingTab {
 			.setHeading();
 
 		const linksSetting = new Setting(containerEl);
-		linksSetting.setName(t('support'));
 		this.renderLinks(linksSetting);
 	}
 }

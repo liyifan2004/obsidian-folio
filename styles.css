@@ -19,6 +19,12 @@
 	width: 100%;
 }
 
+/* 自定义块里的说明段落 */
+.multifolio-section-desc {
+	color: var(--text-muted);
+	margin: 0 0 8px;
+}
+
 /* 命令列表 */
 .multifolio-command {
 	display: flex;
